@@ -1,70 +1,72 @@
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 
-const createCanvasFromElement = async (
+// Render a DOM element to a high-resolution PNG data URL.
+//
+// We use html-to-image (SVG <foreignObject> + the browser's native renderer)
+// instead of html2canvas because it does NOT parse CSS colors itself. This
+// means modern color functions emitted by Tailwind v4 (oklch/lab/lch/color())
+// render correctly across Chrome, Safari, Firefox and mobile browsers without
+// any color-conversion workarounds.
+const renderElementToPng = async (
   elementId: string,
-): Promise<HTMLCanvasElement | null> => {
-  const originalElement = document.getElementById(elementId);
-  if (!originalElement) return null;
+): Promise<{ dataUrl: string; width: number; height: number } | null> => {
+  const element = document.getElementById(elementId);
+  if (!element) return null;
 
-  // Clone to handle capture without UI interference
-  const clone = originalElement.cloneNode(true) as HTMLElement;
-
-  clone.style.position = "fixed";
-  clone.style.left = "-10000px";
-  clone.style.top = "0";
-  clone.style.zIndex = "-1000";
-  clone.style.transform = "none";
-  clone.style.width = "210mm";
-  clone.style.margin = "0";
-  clone.style.borderRadius = "0";
-  clone.style.boxShadow = "none";
-  // Remove forced white background to allow the component's background to persist
-
-  document.body.appendChild(clone);
+  // Capture the element at its natural (unscaled) size. The preview is wrapped
+  // in a CSS transform: scale(...) for layout, which html-to-image would
+  // otherwise bake in — so we measure the untransformed box.
+  const width = element.offsetWidth;
+  const height = element.offsetHeight;
 
   try {
-    const canvas = await html2canvas(clone, {
-      scale: 3, // Increased scale for better color accuracy and detail
-      useCORS: true,
-      logging: false,
-      allowTaint: true,
-      backgroundColor: null, // Transparent background to keep element's color
+    const dataUrl = await toPng(element, {
+      pixelRatio: 3, // High-DPI output for crisp text
+      width,
+      height,
+      cacheBust: true,
+      // Neutralize the layout scale transform during capture.
+      style: {
+        transform: "none",
+        transformOrigin: "top left",
+        margin: "0",
+        borderRadius: "0",
+        boxShadow: "none",
+      },
     });
-    return canvas;
+    return { dataUrl, width, height };
   } catch (error) {
-    console.error("Error creating canvas:", error);
+    console.error("Error rendering element to image:", error);
     return null;
-  } finally {
-    document.body.removeChild(clone);
   }
 };
 
 export const generatePDF = async (elementId: string, fileName: string) => {
-  const canvas = await createCanvasFromElement(elementId);
-  if (!canvas) return;
+  const rendered = await renderElementToPng(elementId);
+  if (!rendered) {
+    alert("Failed to generate PDF. Please try again.");
+    return;
+  }
 
   try {
     const imgWidth = 210; // A4 width in mm
     const pageHeight = 297; // A4 height in mm
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const imgHeight = (rendered.height * imgWidth) / rendered.width;
     let heightLeft = imgHeight;
 
     const pdf = new jsPDF("p", "mm", "a4");
     let position = 0;
 
-    // Use PNG for lossless color fidelity
-    const imgData = canvas.toDataURL("image/png", 1.0);
-
     // Add first page
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    pdf.addImage(rendered.dataUrl, "PNG", 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
 
-    // Add subsequent pages only if content significantly overflows A4 height
+    // Add subsequent pages only if content overflows A4 height
     while (heightLeft > 5) {
       position = heightLeft - imgHeight;
       pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      pdf.addImage(rendered.dataUrl, "PNG", 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
     }
 
@@ -76,13 +78,16 @@ export const generatePDF = async (elementId: string, fileName: string) => {
 };
 
 export const generatePNG = async (elementId: string, fileName: string) => {
-  const canvas = await createCanvasFromElement(elementId);
-  if (!canvas) return;
+  const rendered = await renderElementToPng(elementId);
+  if (!rendered) {
+    alert("Failed to generate PNG. Please try again.");
+    return;
+  }
 
   try {
     const link = document.createElement("a");
     link.download = `${fileName}.png`;
-    link.href = canvas.toDataURL("image/png");
+    link.href = rendered.dataUrl;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

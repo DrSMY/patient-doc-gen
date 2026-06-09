@@ -1,6 +1,69 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
+// Color-related CSS properties that may carry modern color functions
+// (lab/oklch/lch/color()) which html2canvas cannot parse.
+const COLOR_PROPS = [
+  "color",
+  "background-color",
+  "border-top-color",
+  "border-right-color",
+  "border-bottom-color",
+  "border-left-color",
+  "outline-color",
+  "text-decoration-color",
+  "fill",
+  "stroke",
+  "caret-color",
+  "column-rule-color",
+] as const;
+
+// A single reusable canvas context normalizes ANY valid CSS color string
+// (including lab/oklch/lch/color()) into a plain rgb/rgba string.
+let colorCtx: CanvasRenderingContext2D | null = null;
+const colorCache = new Map<string, string>();
+
+const toRgb = (value: string): string => {
+  if (!value) return value;
+  const cached = colorCache.get(value);
+  if (cached) return cached;
+  if (!colorCtx) {
+    colorCtx = document.createElement("canvas").getContext("2d");
+  }
+  let result = value;
+  try {
+    if (colorCtx) {
+      colorCtx.fillStyle = "#000";
+      colorCtx.fillStyle = value;
+      result = colorCtx.fillStyle as string;
+    }
+  } catch {
+    /* leave value untouched if it cannot be parsed */
+  }
+  colorCache.set(value, result);
+  return result;
+};
+
+// Walk the original tree (with live computed styles) and the cloned tree in
+// parallel, copying resolved rgb color values onto the clone as inline styles.
+const inlineResolvedColors = (source: Element, target: Element) => {
+  const sourceEls = [source, ...Array.from(source.querySelectorAll("*"))];
+  const targetEls = [target, ...Array.from(target.querySelectorAll("*"))];
+
+  for (let i = 0; i < sourceEls.length; i++) {
+    const srcEl = sourceEls[i];
+    const tgtEl = targetEls[i] as HTMLElement | undefined;
+    if (!tgtEl) continue;
+    const computed = window.getComputedStyle(srcEl);
+    for (const prop of COLOR_PROPS) {
+      const raw = computed.getPropertyValue(prop);
+      if (!raw) continue;
+      const rgb = toRgb(raw.trim());
+      if (rgb) tgtEl.style.setProperty(prop, rgb);
+    }
+  }
+};
+
 const createCanvasFromElement = async (
   elementId: string,
 ): Promise<HTMLCanvasElement | null> => {
@@ -19,17 +82,19 @@ const createCanvasFromElement = async (
   clone.style.margin = "0";
   clone.style.borderRadius = "0";
   clone.style.boxShadow = "none";
-  // Remove forced white background to allow the component's background to persist
 
   document.body.appendChild(clone);
 
+  // Resolve all colors to rgb so html2canvas never sees lab()/oklch().
+  inlineResolvedColors(originalElement, clone);
+
   try {
     const canvas = await html2canvas(clone, {
-      scale: 3, // Increased scale for better color accuracy and detail
+      scale: 3, // High scale for crisp output
       useCORS: true,
       logging: false,
       allowTaint: true,
-      backgroundColor: null, // Transparent background to keep element's color
+      backgroundColor: null,
     });
     return canvas;
   } catch (error) {
@@ -42,7 +107,10 @@ const createCanvasFromElement = async (
 
 export const generatePDF = async (elementId: string, fileName: string) => {
   const canvas = await createCanvasFromElement(elementId);
-  if (!canvas) return;
+  if (!canvas) {
+    alert("Failed to generate PDF. Please try again.");
+    return;
+  }
 
   try {
     const imgWidth = 210; // A4 width in mm
@@ -77,7 +145,10 @@ export const generatePDF = async (elementId: string, fileName: string) => {
 
 export const generatePNG = async (elementId: string, fileName: string) => {
   const canvas = await createCanvasFromElement(elementId);
-  if (!canvas) return;
+  if (!canvas) {
+    alert("Failed to generate PNG. Please try again.");
+    return;
+  }
 
   try {
     const link = document.createElement("a");

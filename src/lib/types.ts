@@ -28,6 +28,7 @@ export interface PrescriptionData {
   signature?: string;
   stamp?: string;
   logo?: string;
+  showDispensedStamp?: boolean;
 }
 
 export interface MedicalReportData {

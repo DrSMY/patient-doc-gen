@@ -703,6 +703,17 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
         />
       </div>
 
+      <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-[#E5E3DD] shadow-sm">
+        <label htmlFor="dispensed-stamp" className="text-[11px] font-black text-[#173B3D] uppercase tracking-widest cursor-pointer">
+          Show Rx Dispensed Stamp
+        </label>
+        <Switch
+          id="dispensed-stamp"
+          checked={data.showDispensedStamp ?? true}
+          onCheckedChange={(checked) => handleChange('showDispensedStamp', checked)}
+        />
+      </div>
+
       <div className="p-5 bg-white rounded-3xl border border-[#E5E3DD] shadow-sm space-y-4">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-[11px] font-black text-[#173B3D] uppercase tracking-widest">Official Signature</h3>

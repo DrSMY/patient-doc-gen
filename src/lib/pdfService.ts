@@ -30,6 +30,42 @@ const toRgb = (value: string): string => {
 
 const MODERN_COLOR_RE = /oklch|oklab|\blab\(|\blch\(|\bcolor\(/i;
 
+// Color-related CSS properties that may carry modern color functions emitted
+// directly by Tailwind utilities (e.g. text-red-600 -> color: oklch(...)).
+const COLOR_PROPS = [
+  "color",
+  "background-color",
+  "border-top-color",
+  "border-right-color",
+  "border-bottom-color",
+  "border-left-color",
+  "outline-color",
+  "text-decoration-color",
+  "fill",
+  "stroke",
+  "caret-color",
+  "column-rule-color",
+] as const;
+
+// Walk the original tree (with live computed styles) and the cloned tree in
+// parallel, copying resolved rgb color values onto the clone as inline styles.
+const inlineResolvedColors = (source: Element, target: Element) => {
+  const sourceEls = [source, ...Array.from(source.querySelectorAll("*"))];
+  const targetEls = [target, ...Array.from(target.querySelectorAll("*"))];
+
+  for (let i = 0; i < sourceEls.length; i++) {
+    const computed = window.getComputedStyle(sourceEls[i]);
+    const tgtEl = targetEls[i] as HTMLElement | undefined;
+    if (!tgtEl) continue;
+    for (const prop of COLOR_PROPS) {
+      const raw = computed.getPropertyValue(prop).trim();
+      if (!raw || !MODERN_COLOR_RE.test(raw)) continue;
+      const rgb = toRgb(raw);
+      if (rgb && !MODERN_COLOR_RE.test(rgb)) tgtEl.style.setProperty(prop, rgb);
+    }
+  }
+};
+
 // Temporarily pin every modern-color-function CSS custom property defined on
 // :root to a plain rgb equivalent. html2canvas clones the whole document into
 // an iframe and re-resolves these variables, so they must be rgb on the live

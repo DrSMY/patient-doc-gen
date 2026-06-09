@@ -1,23 +1,6 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-// Color-related CSS properties that may carry modern color functions
-// (lab/oklch/lch/color()) which html2canvas cannot parse.
-const COLOR_PROPS = [
-  "color",
-  "background-color",
-  "border-top-color",
-  "border-right-color",
-  "border-bottom-color",
-  "border-left-color",
-  "outline-color",
-  "text-decoration-color",
-  "fill",
-  "stroke",
-  "caret-color",
-  "column-rule-color",
-] as const;
-
 // A single reusable canvas context normalizes ANY valid CSS color string
 // (including lab/oklch/lch/color()) into a plain rgb/rgba string.
 let colorCtx: CanvasRenderingContext2D | null = null;
@@ -33,7 +16,8 @@ const toRgb = (value: string): string => {
   let result = value;
   try {
     if (colorCtx) {
-      colorCtx.fillStyle = "#000";
+      // Reset to a known value; if assignment is rejected it stays this.
+      colorCtx.fillStyle = "rgba(0,0,0,0)";
       colorCtx.fillStyle = value;
       result = colorCtx.fillStyle as string;
     }
@@ -44,24 +28,34 @@ const toRgb = (value: string): string => {
   return result;
 };
 
-// Walk the original tree (with live computed styles) and the cloned tree in
-// parallel, copying resolved rgb color values onto the clone as inline styles.
-const inlineResolvedColors = (source: Element, target: Element) => {
-  const sourceEls = [source, ...Array.from(source.querySelectorAll("*"))];
-  const targetEls = [target, ...Array.from(target.querySelectorAll("*"))];
+const MODERN_COLOR_RE = /oklch|oklab|\blab\(|\blch\(|\bcolor\(/i;
 
-  for (let i = 0; i < sourceEls.length; i++) {
-    const srcEl = sourceEls[i];
-    const tgtEl = targetEls[i] as HTMLElement | undefined;
-    if (!tgtEl) continue;
-    const computed = window.getComputedStyle(srcEl);
-    for (const prop of COLOR_PROPS) {
-      const raw = computed.getPropertyValue(prop);
-      if (!raw) continue;
-      const rgb = toRgb(raw.trim());
-      if (rgb) tgtEl.style.setProperty(prop, rgb);
-    }
+// Temporarily pin every modern-color-function CSS custom property defined on
+// :root to a plain rgb equivalent. html2canvas clones the whole document into
+// an iframe and re-resolves these variables, so they must be rgb on the live
+// root for the duration of the capture. Returns a restore function.
+const pinRootColorsToRgb = (): (() => void) => {
+  const root = document.documentElement;
+  const rootStyle = window.getComputedStyle(root);
+  const restores: Array<() => void> = [];
+
+  for (let i = 0; i < rootStyle.length; i++) {
+    const name = rootStyle[i];
+    if (!name.startsWith("--")) continue;
+    const value = rootStyle.getPropertyValue(name).trim();
+    if (!MODERN_COLOR_RE.test(value)) continue;
+    const rgb = toRgb(value);
+    if (!rgb || MODERN_COLOR_RE.test(rgb)) continue;
+    const prev = root.style.getPropertyValue(name);
+    const prevPriority = root.style.getPropertyPriority(name);
+    root.style.setProperty(name, rgb, "important");
+    restores.push(() => {
+      if (prev) root.style.setProperty(name, prev, prevPriority);
+      else root.style.removeProperty(name);
+    });
   }
+
+  return () => restores.forEach((fn) => fn());
 };
 
 const createCanvasFromElement = async (
@@ -83,23 +77,11 @@ const createCanvasFromElement = async (
   clone.style.borderRadius = "0";
   clone.style.boxShadow = "none";
 
-  // Resolve all root CSS custom properties (e.g. --border, --background defined
-  // in oklch by Tailwind v4) to rgb and pin them on the clone so any cascading
-  // var(--x) — including ::before/::after pseudo-elements — renders as rgb.
-  const rootStyle = window.getComputedStyle(document.documentElement);
-  for (let i = 0; i < rootStyle.length; i++) {
-    const name = rootStyle[i];
-    if (!name.startsWith("--")) continue;
-    const value = rootStyle.getPropertyValue(name).trim();
-    if (/oklch|oklab|\blab\(|\blch\(|color\(/i.test(value)) {
-      clone.style.setProperty(name, toRgb(value));
-    }
-  }
-
   document.body.appendChild(clone);
 
-  // Resolve all element colors to rgb so html2canvas never sees lab()/oklch().
-  inlineResolvedColors(originalElement, clone);
+  // Resolve all oklch/lab CSS variables to rgb on the live document root so the
+  // iframe html2canvas builds never encounters an unsupported color function.
+  const restoreColors = pinRootColorsToRgb();
 
   try {
     const canvas = await html2canvas(clone, {
@@ -114,6 +96,7 @@ const createCanvasFromElement = async (
     console.error("Error creating canvas:", error);
     return null;
   } finally {
+    restoreColors();
     document.body.removeChild(clone);
   }
 };

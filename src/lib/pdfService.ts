@@ -1,51 +1,14 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-// Properties whose computed value may be authored in oklch/lab, which
-// html2canvas cannot parse. We resolve them to rgb(...) by reading the
-// computed style from the live DOM (browsers serialize these as rgb).
-const COLOR_PROPS = [
-  "color",
-  "background-color",
-  "border-top-color",
-  "border-right-color",
-  "border-bottom-color",
-  "border-left-color",
-  "outline-color",
-  "text-decoration-color",
-  "fill",
-  "stroke",
-] as const;
-
-const inlineResolvedColors = (source: Element, target: Element) => {
-  const computed = window.getComputedStyle(source);
-  const targetEl = target as HTMLElement;
-  for (const prop of COLOR_PROPS) {
-    const value = computed.getPropertyValue(prop);
-    if (value) {
-      targetEl.style.setProperty(prop, value);
-    }
-  }
-
-  const sourceChildren = source.children;
-  const targetChildren = target.children;
-  for (let i = 0; i < sourceChildren.length; i++) {
-    if (targetChildren[i]) {
-      inlineResolvedColors(sourceChildren[i], targetChildren[i]);
-    }
-  }
-};
-
 const createCanvasFromElement = async (
   elementId: string,
 ): Promise<HTMLCanvasElement | null> => {
   const originalElement = document.getElementById(elementId);
   if (!originalElement) return null;
 
+  // Clone to handle capture without UI interference
   const clone = originalElement.cloneNode(true) as HTMLElement;
-
-  // Copy resolved (rgb) colors so html2canvas never sees oklch/lab.
-  inlineResolvedColors(originalElement, clone);
 
   clone.style.position = "fixed";
   clone.style.left = "-10000px";
@@ -56,16 +19,17 @@ const createCanvasFromElement = async (
   clone.style.margin = "0";
   clone.style.borderRadius = "0";
   clone.style.boxShadow = "none";
+  // Remove forced white background to allow the component's background to persist
 
   document.body.appendChild(clone);
 
   try {
     const canvas = await html2canvas(clone, {
-      scale: 3,
+      scale: 3, // Increased scale for better color accuracy and detail
       useCORS: true,
       logging: false,
       allowTaint: true,
-      backgroundColor: null,
+      backgroundColor: null, // Transparent background to keep element's color
     });
     return canvas;
   } catch (error) {
@@ -81,19 +45,22 @@ export const generatePDF = async (elementId: string, fileName: string) => {
   if (!canvas) return;
 
   try {
-    const imgWidth = 210;
-    const pageHeight = 297;
+    const imgWidth = 210; // A4 width in mm
+    const pageHeight = 297; // A4 height in mm
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     let heightLeft = imgHeight;
 
     const pdf = new jsPDF("p", "mm", "a4");
     let position = 0;
 
+    // Use PNG for lossless color fidelity
     const imgData = canvas.toDataURL("image/png", 1.0);
 
+    // Add first page
     pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
 
+    // Add subsequent pages only if content significantly overflows A4 height
     while (heightLeft > 5) {
       position = heightLeft - imgHeight;
       pdf.addPage();

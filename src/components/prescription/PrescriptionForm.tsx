@@ -3,6 +3,7 @@ import { PrescriptionData, PrescriptionMedication } from '@/lib/types';
 import { Plus, Trash2, Upload, X, Sparkles, Loader2, Search, Heart, Database, BookOpen, Save, User } from 'lucide-react';
 import { parseMedications, parsePrescription } from '@/lib/geminiService';
 import { getFormattedDate } from '@/lib/dateUtils';
+import { Switch } from '@/components/ui/switch';
 
 interface PrescriptionFormProps {
   data: PrescriptionData;
@@ -699,6 +700,17 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
            className="w-full bg-white border-red-200 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-red-500 outline-none border transition-all text-red-600 font-bold"
            rows={2}
            placeholder="Appears in red at bottom (e.g. Not valid for refills)"
+        />
+      </div>
+
+      <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-[#E5E3DD] shadow-sm">
+        <label htmlFor="dispensed-stamp" className="text-[11px] font-black text-[#173B3D] uppercase tracking-widest cursor-pointer">
+          Show Rx Dispensed Stamp
+        </label>
+        <Switch
+          id="dispensed-stamp"
+          checked={data.showDispensedStamp ?? true}
+          onCheckedChange={(checked) => handleChange('showDispensedStamp', checked)}
         />
       </div>
 

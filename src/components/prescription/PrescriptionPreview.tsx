@@ -135,13 +135,15 @@ export const PrescriptionPreview: React.FC<PrescriptionPreviewProps> = ({ data, 
       </div>
 
       {/* Dispensed Stamp */}
-      <div className="absolute left-[120px] bottom-[110px] transform rotate-[-7deg] border-[3px] border-[#A63A3A] p-1 rounded-sm opacity-90 mix-blend-multiply flex items-center justify-center z-20 pointer-events-none">
-          <div className="border border-[#A63A3A] px-6 py-2.5 text-center">
-              <p className="text-[18px] font-black tracking-[0.15em] uppercase text-[#A63A3A] leading-none mb-1">Rx Dispensed</p>
-              <div className="h-px bg-[#A63A3A] w-2/3 mx-auto my-1.5 opacity-60"></div>
-              <p className="text-[10px] font-black tracking-[0.12em] uppercase text-[#A63A3A] leading-none">Not Valid for Refills</p>
-          </div>
-      </div>
+      {data.showDispensedStamp && (
+        <div className="absolute left-[120px] bottom-[110px] transform rotate-[-7deg] border-[3px] border-[#A63A3A] p-1 rounded-sm opacity-90 mix-blend-multiply flex items-center justify-center z-20 pointer-events-none">
+            <div className="border border-[#A63A3A] px-6 py-2.5 text-center">
+                <p className="text-[18px] font-black tracking-[0.15em] uppercase text-[#A63A3A] leading-none mb-1">Rx Dispensed</p>
+                <div className="h-px bg-[#A63A3A] w-2/3 mx-auto my-1.5 opacity-60"></div>
+                <p className="text-[10px] font-black tracking-[0.12em] uppercase text-[#A63A3A] leading-none">Not Valid for Refills</p>
+            </div>
+        </div>
+      )}
 
       {/* Official Uploaded Stamp */}
       {data.stamp && (

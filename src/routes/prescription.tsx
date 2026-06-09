@@ -49,6 +49,7 @@ const INITIAL_PRESCRIPTION: PrescriptionData = {
   signature: undefined,
   stamp: undefined,
   logo: undefined,
+  showDispensedStamp: true,
 };
 
 function PrescriptionPage() {

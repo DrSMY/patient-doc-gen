@@ -115,6 +115,10 @@ const createCanvasFromElement = async (
 
   document.body.appendChild(clone);
 
+  // Resolve any utility-class oklch/lab colors (e.g. text-red-600) to rgb on
+  // the clone elements directly.
+  inlineResolvedColors(originalElement, clone);
+
   // Resolve all oklch/lab CSS variables to rgb on the live document root so the
   // iframe html2canvas builds never encounters an unsupported color function.
   const restoreColors = pinRootColorsToRgb();

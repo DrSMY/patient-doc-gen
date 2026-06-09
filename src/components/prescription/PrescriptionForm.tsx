@@ -3,6 +3,7 @@ import { PrescriptionData, PrescriptionMedication } from '@/lib/types';
 import { Plus, Trash2, Upload, X, Sparkles, Loader2, Search, Heart, Database, BookOpen, Save, User } from 'lucide-react';
 import { parseMedications, parsePrescription } from '@/lib/geminiService';
 import { getFormattedDate } from '@/lib/dateUtils';
+import { Switch } from '@/components/ui/switch';
 
 interface PrescriptionFormProps {
   data: PrescriptionData;

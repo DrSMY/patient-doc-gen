@@ -1,149 +1,50 @@
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 
-// A single reusable canvas context normalizes ANY valid CSS color string
-// (including lab/oklch/lch/color()) into a plain rgb/rgba string.
-let colorCtx: CanvasRenderingContext2D | null = null;
-const colorCache = new Map<string, string>();
-
-const toRgb = (value: string): string => {
-  if (!value) return value;
-  const cached = colorCache.get(value);
-  if (cached) return cached;
-  if (!colorCtx) {
-    colorCtx = document.createElement("canvas").getContext("2d");
-  }
-  let result = value;
-  try {
-    if (colorCtx) {
-      // Reset to a known value; if assignment is rejected it stays this.
-      colorCtx.fillStyle = "rgba(0,0,0,0)";
-      colorCtx.fillStyle = value;
-      result = colorCtx.fillStyle as string;
-    }
-  } catch {
-    /* leave value untouched if it cannot be parsed */
-  }
-  colorCache.set(value, result);
-  return result;
-};
-
-const MODERN_COLOR_RE = /oklch|oklab|\blab\(|\blch\(|\bcolor\(/i;
-
-// Color-related CSS properties that may carry modern color functions emitted
-// directly by Tailwind utilities (e.g. text-red-600 -> color: oklch(...)).
-const COLOR_PROPS = [
-  "color",
-  "background-color",
-  "border-top-color",
-  "border-right-color",
-  "border-bottom-color",
-  "border-left-color",
-  "outline-color",
-  "text-decoration-color",
-  "fill",
-  "stroke",
-  "caret-color",
-  "column-rule-color",
-] as const;
-
-// Walk the original tree (with live computed styles) and the cloned tree in
-// parallel, copying resolved rgb color values onto the clone as inline styles.
-const inlineResolvedColors = (source: Element, target: Element) => {
-  const sourceEls = [source, ...Array.from(source.querySelectorAll("*"))];
-  const targetEls = [target, ...Array.from(target.querySelectorAll("*"))];
-
-  for (let i = 0; i < sourceEls.length; i++) {
-    const computed = window.getComputedStyle(sourceEls[i]);
-    const tgtEl = targetEls[i] as HTMLElement | undefined;
-    if (!tgtEl) continue;
-    for (const prop of COLOR_PROPS) {
-      const raw = computed.getPropertyValue(prop).trim();
-      if (!raw || !MODERN_COLOR_RE.test(raw)) continue;
-      const rgb = toRgb(raw);
-      if (rgb && !MODERN_COLOR_RE.test(rgb)) tgtEl.style.setProperty(prop, rgb);
-    }
-  }
-};
-
-// Temporarily pin every modern-color-function CSS custom property defined on
-// :root to a plain rgb equivalent. html2canvas clones the whole document into
-// an iframe and re-resolves these variables, so they must be rgb on the live
-// root for the duration of the capture. Returns a restore function.
-const pinRootColorsToRgb = (): (() => void) => {
-  const root = document.documentElement;
-  const rootStyle = window.getComputedStyle(root);
-  const restores: Array<() => void> = [];
-
-  for (let i = 0; i < rootStyle.length; i++) {
-    const name = rootStyle[i];
-    if (!name.startsWith("--")) continue;
-    const value = rootStyle.getPropertyValue(name).trim();
-    if (!MODERN_COLOR_RE.test(value)) continue;
-    const rgb = toRgb(value);
-    if (!rgb || MODERN_COLOR_RE.test(rgb)) continue;
-    const prev = root.style.getPropertyValue(name);
-    const prevPriority = root.style.getPropertyPriority(name);
-    root.style.setProperty(name, rgb, "important");
-    restores.push(() => {
-      if (prev) root.style.setProperty(name, prev, prevPriority);
-      else root.style.removeProperty(name);
-    });
-  }
-
-  return () => restores.forEach((fn) => fn());
-};
-
-const createCanvasFromElement = async (
+// Render a DOM element to a high-resolution PNG data URL.
+//
+// We use html-to-image (SVG <foreignObject> + the browser's native renderer)
+// instead of html2canvas because it does NOT parse CSS colors itself. This
+// means modern color functions emitted by Tailwind v4 (oklch/lab/lch/color())
+// render correctly across Chrome, Safari, Firefox and mobile browsers without
+// any color-conversion workarounds.
+const renderElementToPng = async (
   elementId: string,
-): Promise<HTMLCanvasElement | null> => {
-  const originalElement = document.getElementById(elementId);
-  if (!originalElement) return null;
+): Promise<{ dataUrl: string; width: number; height: number } | null> => {
+  const element = document.getElementById(elementId);
+  if (!element) return null;
 
-  // Clone to handle capture without UI interference
-  const clone = originalElement.cloneNode(true) as HTMLElement;
-
-  clone.style.position = "fixed";
-  clone.style.left = "-10000px";
-  clone.style.top = "0";
-  clone.style.zIndex = "-1000";
-  clone.style.transform = "none";
-  clone.style.width = "210mm";
-  clone.style.margin = "0";
-  clone.style.borderRadius = "0";
-  clone.style.boxShadow = "none";
-
-  document.body.appendChild(clone);
-
-  // Resolve any utility-class oklch/lab colors (e.g. text-red-600) to rgb on
-  // the clone elements directly.
-  inlineResolvedColors(originalElement, clone);
-
-  // Resolve all oklch/lab CSS variables to rgb on the live document root so the
-  // iframe html2canvas builds never encounters an unsupported color function.
-  const restoreColors = pinRootColorsToRgb();
+  // Capture the element at its natural (unscaled) size. The preview is wrapped
+  // in a CSS transform: scale(...) for layout, which html-to-image would
+  // otherwise bake in — so we measure the untransformed box.
+  const width = element.offsetWidth;
+  const height = element.offsetHeight;
 
   try {
-    const canvas = await html2canvas(clone, {
-      scale: 3, // High scale for crisp output
-      useCORS: true,
-      logging: false,
-      allowTaint: true,
-      backgroundColor: null,
+    const dataUrl = await toPng(element, {
+      pixelRatio: 3, // High-DPI output for crisp text
+      width,
+      height,
+      cacheBust: true,
+      // Neutralize the layout scale transform during capture.
+      style: {
+        transform: "none",
+        transformOrigin: "top left",
+        margin: "0",
+        borderRadius: "0",
+        boxShadow: "none",
+      },
     });
-    return canvas;
+    return { dataUrl, width, height };
   } catch (error) {
-    console.error("Error creating canvas:", error);
+    console.error("Error rendering element to image:", error);
     return null;
-  } finally {
-    restoreColors();
-    document.body.removeChild(clone);
   }
 };
 
 export const generatePDF = async (elementId: string, fileName: string) => {
-  const canvas = await createCanvasFromElement(elementId);
-  if (!canvas) {
+  const rendered = await renderElementToPng(elementId);
+  if (!rendered) {
     alert("Failed to generate PDF. Please try again.");
     return;
   }
@@ -151,24 +52,21 @@ export const generatePDF = async (elementId: string, fileName: string) => {
   try {
     const imgWidth = 210; // A4 width in mm
     const pageHeight = 297; // A4 height in mm
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const imgHeight = (rendered.height * imgWidth) / rendered.width;
     let heightLeft = imgHeight;
 
     const pdf = new jsPDF("p", "mm", "a4");
     let position = 0;
 
-    // Use PNG for lossless color fidelity
-    const imgData = canvas.toDataURL("image/png", 1.0);
-
     // Add first page
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    pdf.addImage(rendered.dataUrl, "PNG", 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
 
-    // Add subsequent pages only if content significantly overflows A4 height
+    // Add subsequent pages only if content overflows A4 height
     while (heightLeft > 5) {
       position = heightLeft - imgHeight;
       pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      pdf.addImage(rendered.dataUrl, "PNG", 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
     }
 
@@ -180,8 +78,8 @@ export const generatePDF = async (elementId: string, fileName: string) => {
 };
 
 export const generatePNG = async (elementId: string, fileName: string) => {
-  const canvas = await createCanvasFromElement(elementId);
-  if (!canvas) {
+  const rendered = await renderElementToPng(elementId);
+  if (!rendered) {
     alert("Failed to generate PNG. Please try again.");
     return;
   }
@@ -189,7 +87,7 @@ export const generatePNG = async (elementId: string, fileName: string) => {
   try {
     const link = document.createElement("a");
     link.download = `${fileName}.png`;
-    link.href = canvas.toDataURL("image/png");
+    link.href = rendered.dataUrl;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

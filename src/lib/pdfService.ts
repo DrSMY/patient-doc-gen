@@ -83,9 +83,22 @@ const createCanvasFromElement = async (
   clone.style.borderRadius = "0";
   clone.style.boxShadow = "none";
 
+  // Resolve all root CSS custom properties (e.g. --border, --background defined
+  // in oklch by Tailwind v4) to rgb and pin them on the clone so any cascading
+  // var(--x) — including ::before/::after pseudo-elements — renders as rgb.
+  const rootStyle = window.getComputedStyle(document.documentElement);
+  for (let i = 0; i < rootStyle.length; i++) {
+    const name = rootStyle[i];
+    if (!name.startsWith("--")) continue;
+    const value = rootStyle.getPropertyValue(name).trim();
+    if (/oklch|oklab|\blab\(|\blch\(|color\(/i.test(value)) {
+      clone.style.setProperty(name, toRgb(value));
+    }
+  }
+
   document.body.appendChild(clone);
 
-  // Resolve all colors to rgb so html2canvas never sees lab()/oklch().
+  // Resolve all element colors to rgb so html2canvas never sees lab()/oklch().
   inlineResolvedColors(originalElement, clone);
 
   try {

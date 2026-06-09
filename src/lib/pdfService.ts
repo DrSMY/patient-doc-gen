@@ -1,6 +1,41 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
+// Properties whose computed value may be authored in oklch/lab, which
+// html2canvas cannot parse. We resolve them to rgb(...) by reading the
+// computed style from the live DOM (browsers serialize these as rgb).
+const COLOR_PROPS = [
+  "color",
+  "background-color",
+  "border-top-color",
+  "border-right-color",
+  "border-bottom-color",
+  "border-left-color",
+  "outline-color",
+  "text-decoration-color",
+  "fill",
+  "stroke",
+] as const;
+
+const inlineResolvedColors = (source: Element, target: Element) => {
+  const computed = window.getComputedStyle(source);
+  const targetEl = target as HTMLElement;
+  for (const prop of COLOR_PROPS) {
+    const value = computed.getPropertyValue(prop);
+    if (value) {
+      targetEl.style.setProperty(prop, value);
+    }
+  }
+
+  const sourceChildren = source.children;
+  const targetChildren = target.children;
+  for (let i = 0; i < sourceChildren.length; i++) {
+    if (targetChildren[i]) {
+      inlineResolvedColors(sourceChildren[i], targetChildren[i]);
+    }
+  }
+};
+
 const createCanvasFromElement = async (
   elementId: string,
 ): Promise<HTMLCanvasElement | null> => {
@@ -8,6 +43,9 @@ const createCanvasFromElement = async (
   if (!originalElement) return null;
 
   const clone = originalElement.cloneNode(true) as HTMLElement;
+
+  // Copy resolved (rgb) colors so html2canvas never sees oklch/lab.
+  inlineResolvedColors(originalElement, clone);
 
   clone.style.position = "fixed";
   clone.style.left = "-10000px";

@@ -17,95 +17,16 @@ interface PrescriptionFormProps {
 }
 
 const COMMON_MEDS_LIBRARY = [
-  // Antibiotics
   { name: 'Amoxicillin', dosage: '500 mg', instructions: '1 tab PO TID for 7 days' },
-  { name: 'Amoxicillin/Clavulanate (Augmentin)', dosage: '625 mg', instructions: '1 tab PO TID for 7 days' },
-  { name: 'Azithromycin', dosage: '500 mg', instructions: '1 tab PO daily for 3 days' },
-  { name: 'Ciprofloxacin', dosage: '500 mg', instructions: '1 tab PO BID for 7 days' },
-  { name: 'Levofloxacin', dosage: '500 mg', instructions: '1 tab PO daily for 7 days' },
-  { name: 'Doxycycline', dosage: '100 mg', instructions: '1 cap PO BID for 7 days' },
-  { name: 'Cephalexin', dosage: '500 mg', instructions: '1 cap PO QID for 7 days' },
-  { name: 'Cefuroxime', dosage: '500 mg', instructions: '1 tab PO BID for 7 days' },
-  { name: 'Clarithromycin', dosage: '500 mg', instructions: '1 tab PO BID for 7 days' },
-  { name: 'Clindamycin', dosage: '300 mg', instructions: '1 cap PO QID for 7 days' },
-  { name: 'Metronidazole', dosage: '500 mg', instructions: '1 tab PO TID for 7 days' },
-  { name: 'Trimethoprim/Sulfamethoxazole (Bactrim)', dosage: '800/160 mg', instructions: '1 tab PO BID for 7 days' },
-  { name: 'Nitrofurantoin', dosage: '100 mg', instructions: '1 cap PO BID for 5 days' },
-
-  // Analgesics & Anti-inflammatories
   { name: 'Paracetamol (Panadol)', dosage: '500 mg', instructions: '1-2 tabs PO every 6 hours PRN for pain/fever' },
-  { name: 'Ibuprofen', dosage: '400 mg', instructions: '1 tab PO TID PRN with food' },
-  { name: 'Naproxen', dosage: '500 mg', instructions: '1 tab PO BID with food' },
-  { name: 'Diclofenac', dosage: '50 mg', instructions: '1 tab PO TID with food' },
-  { name: 'Aspirin', dosage: '75 mg', instructions: '1 tab PO daily' },
-  { name: 'Celecoxib', dosage: '200 mg', instructions: '1 cap PO daily' },
-  { name: 'Tramadol', dosage: '50 mg', instructions: '1 tab PO every 6 hours PRN for pain' },
-  { name: 'Codeine/Paracetamol', dosage: '30/500 mg', instructions: '1-2 tabs PO every 6 hours PRN' },
-
-  // Cardiovascular
-  { name: 'Atorvastatin', dosage: '20 mg', instructions: '1 tab PO daily at bedtime' },
-  { name: 'Rosuvastatin', dosage: '10 mg', instructions: '1 tab PO daily' },
-  { name: 'Lisinopril', dosage: '10 mg', instructions: '1 tab PO daily' },
-  { name: 'Ramipril', dosage: '5 mg', instructions: '1 cap PO daily' },
-  { name: 'Losartan', dosage: '50 mg', instructions: '1 tab PO daily' },
-  { name: 'Valsartan', dosage: '80 mg', instructions: '1 tab PO daily' },
-  { name: 'Amlodipine', dosage: '5 mg', instructions: '1 tab PO daily' },
-  { name: 'Bisoprolol', dosage: '5 mg', instructions: '1 tab PO daily' },
-  { name: 'Metoprolol', dosage: '50 mg', instructions: '1 tab PO BID' },
-  { name: 'Atenolol', dosage: '50 mg', instructions: '1 tab PO daily' },
-  { name: 'Hydrochlorothiazide', dosage: '25 mg', instructions: '1 tab PO daily in the morning' },
-  { name: 'Furosemide (Lasix)', dosage: '40 mg', instructions: '1 tab PO daily in the morning' },
-  { name: 'Clopidogrel (Plavix)', dosage: '75 mg', instructions: '1 tab PO daily' },
-  { name: 'Warfarin', dosage: '5 mg', instructions: '1 tab PO daily as directed by INR' },
-  { name: 'Rivaroxaban (Xarelto)', dosage: '20 mg', instructions: '1 tab PO daily with food' },
-
-  // Diabetes & Endocrine
   { name: 'Metformin', dosage: '500 mg', instructions: '1 tab PO BID with meals' },
-  { name: 'Metformin XR', dosage: '1000 mg', instructions: '1 tab PO daily with dinner' },
-  { name: 'Glimepiride', dosage: '2 mg', instructions: '1 tab PO daily before breakfast' },
-  { name: 'Gliclazide', dosage: '60 mg', instructions: '1 tab PO daily with breakfast' },
-  { name: 'Sitagliptin (Januvia)', dosage: '100 mg', instructions: '1 tab PO daily' },
-  { name: 'Empagliflozin (Jardiance)', dosage: '10 mg', instructions: '1 tab PO daily' },
-  { name: 'Insulin Glargine (Lantus)', dosage: '100 units/ml', instructions: 'Inject SC once daily as directed' },
-  { name: 'Levothyroxine', dosage: '50 mcg', instructions: '1 tab PO daily on empty stomach' },
-
-  // Gastrointestinal
-  { name: 'Omeprazole', dosage: '20 mg', instructions: '1 cap PO daily 30 mins before breakfast' },
-  { name: 'Esomeprazole (Nexium)', dosage: '40 mg', instructions: '1 cap PO daily before breakfast' },
-  { name: 'Pantoprazole', dosage: '40 mg', instructions: '1 tab PO daily before breakfast' },
-  { name: 'Ranitidine', dosage: '150 mg', instructions: '1 tab PO BID' },
-  { name: 'Domperidone', dosage: '10 mg', instructions: '1 tab PO TID before meals' },
-  { name: 'Ondansetron', dosage: '4 mg', instructions: '1 tab PO every 8 hours PRN for nausea' },
-  { name: 'Loperamide', dosage: '2 mg', instructions: '2 caps PO initially, then 1 after each loose stool' },
-  { name: 'Lactulose', dosage: '10 g/15 ml', instructions: '15 ml PO daily PRN for constipation' },
-
-  // Respiratory & Allergy
+  { name: 'Atorvastatin', dosage: '20 mg', instructions: '1 tab PO daily at bedtime' },
+  { name: 'Lisinopril', dosage: '10 mg', instructions: '1 tab PO daily' },
+  { name: 'Amlodipine', dosage: '5 mg', instructions: '1 tab PO daily' },
   { name: 'Salbutamol Inhaler', dosage: '100 mcg/actuation', instructions: '2 puffs inhaled every 4-6 hours PRN' },
-  { name: 'Budesonide/Formoterol (Symbicort)', dosage: '160/4.5 mcg', instructions: '2 puffs inhaled BID' },
-  { name: 'Fluticasone/Salmeterol (Seretide)', dosage: '250/25 mcg', instructions: '2 puffs inhaled BID' },
-  { name: 'Montelukast (Singulair)', dosage: '10 mg', instructions: '1 tab PO daily at bedtime' },
+  { name: 'Azithromycin', dosage: '500 mg', instructions: '1 tab PO daily for 3 days' },
+  { name: 'Omeprazole', dosage: '20 mg', instructions: '1 cap PO daily 30 mins before breakfast' },
   { name: 'Cetirizine', dosage: '10 mg', instructions: '1 tab PO daily at bedtime' },
-  { name: 'Loratadine', dosage: '10 mg', instructions: '1 tab PO daily' },
-  { name: 'Fexofenadine', dosage: '180 mg', instructions: '1 tab PO daily' },
-  { name: 'Fluticasone Nasal Spray', dosage: '50 mcg/spray', instructions: '2 sprays each nostril daily' },
-  { name: 'Dextromethorphan', dosage: '15 mg/5 ml', instructions: '10 ml PO every 6 hours PRN for cough' },
-
-  // CNS / Psychiatry
-  { name: 'Sertraline', dosage: '50 mg', instructions: '1 tab PO daily' },
-  { name: 'Escitalopram', dosage: '10 mg', instructions: '1 tab PO daily' },
-  { name: 'Fluoxetine', dosage: '20 mg', instructions: '1 cap PO daily in the morning' },
-  { name: 'Amitriptyline', dosage: '25 mg', instructions: '1 tab PO at bedtime' },
-  { name: 'Pregabalin', dosage: '75 mg', instructions: '1 cap PO BID' },
-  { name: 'Gabapentin', dosage: '300 mg', instructions: '1 cap PO TID' },
-  { name: 'Diazepam', dosage: '5 mg', instructions: '1 tab PO at bedtime PRN' },
-
-  // Supplements & Others
-  { name: 'Vitamin D3 (Cholecalciferol)', dosage: '1000 IU', instructions: '1 tab PO daily' },
-  { name: 'Vitamin B12 (Cyanocobalamin)', dosage: '1000 mcg', instructions: '1 tab PO daily' },
-  { name: 'Ferrous Sulfate', dosage: '325 mg', instructions: '1 tab PO daily with vitamin C' },
-  { name: 'Folic Acid', dosage: '5 mg', instructions: '1 tab PO daily' },
-  { name: 'Calcium/Vitamin D', dosage: '600 mg/400 IU', instructions: '1 tab PO BID with meals' },
-  { name: 'Omega-3 Fish Oil', dosage: '1000 mg', instructions: '1 cap PO daily with food' },
 ];
 
 export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({ 

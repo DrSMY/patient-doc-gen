@@ -156,7 +156,11 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => { handleChange('signature', reader.result as string); };
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        handleChange('signature', result);
+        if (!savedSignatures.includes(result)) setSavedSignatures([result, ...savedSignatures]);
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -170,7 +174,11 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => { handleChange('stamp', reader.result as string); };
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        handleChange('stamp', result);
+        if (!savedStamps.includes(result)) setSavedStamps([result, ...savedStamps]);
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -184,7 +192,11 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => { handleChange('logo', reader.result as string); };
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        handleChange('logo', result);
+        if (!savedLogos.includes(result)) setSavedLogos([result, ...savedLogos]);
+      };
       reader.readAsDataURL(file);
     }
   };

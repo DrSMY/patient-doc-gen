@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MedicalReportForm } from "@/components/medical-report/MedicalReportForm";
 import { MedicalReportPreview } from "@/components/medical-report/MedicalReportPreview";
 import { EditorLayout, useLocalStorageList } from "@/components/EditorLayout";
@@ -57,6 +57,35 @@ function MedicalReportPage() {
   const [savedSignatures, setSavedSignatures] = useLocalStorageList("docgenie_signatures");
   const [savedStamps, setSavedStamps] = useLocalStorageList("docgenie_stamps");
   const [savedLogos, setSavedLogos] = useLocalStorageList("docgenie_logos");
+
+  // Restore the last-used active logo/signature/stamp on mount.
+  const restored = useRef(false);
+  useEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
+    const logo = localStorage.getItem("docgenie_active_logo") || undefined;
+    const signature = localStorage.getItem("docgenie_active_signature") || undefined;
+    const stamp = localStorage.getItem("docgenie_active_stamp") || undefined;
+    if (logo || signature || stamp) {
+      setData((d) => ({
+        ...d,
+        logo: logo ?? d.logo,
+        signature: signature ?? d.signature,
+        stamp: stamp ?? d.stamp,
+      }));
+    }
+  }, []);
+
+  // Persist the active assets whenever they change.
+  useEffect(() => {
+    if (!restored.current) return;
+    if (data.logo) localStorage.setItem("docgenie_active_logo", data.logo);
+    else localStorage.removeItem("docgenie_active_logo");
+    if (data.signature) localStorage.setItem("docgenie_active_signature", data.signature);
+    else localStorage.removeItem("docgenie_active_signature");
+    if (data.stamp) localStorage.setItem("docgenie_active_stamp", data.stamp);
+    else localStorage.removeItem("docgenie_active_stamp");
+  }, [data.logo, data.signature, data.stamp]);
 
   return (
     <EditorLayout

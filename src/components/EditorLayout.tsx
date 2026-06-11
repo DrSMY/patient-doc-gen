@@ -22,6 +22,20 @@ export function useLocalStorageList(key: string) {
   return [list, update] as const;
 }
 
+export function useLocalStorageString(key: string) {
+  const [value, setValue] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const saved = localStorage.getItem(key);
+    if (saved) setValue(saved);
+  }, [key]);
+  const update = (next: string | undefined) => {
+    setValue(next);
+    if (next) localStorage.setItem(key, next);
+    else localStorage.removeItem(key);
+  };
+  return [value, update] as const;
+}
+
 interface EditorLayoutProps {
   title: string;
   previewId: string;

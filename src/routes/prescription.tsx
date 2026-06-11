@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PrescriptionForm } from "@/components/prescription/PrescriptionForm";
 import { PrescriptionPreview } from "@/components/prescription/PrescriptionPreview";
 import { EditorLayout, useLocalStorageList } from "@/components/EditorLayout";

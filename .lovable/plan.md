@@ -1,61 +1,36 @@
+# Always-Save Logo, Signature & Stamp
+
 ## Goal
+Make the currently attached clinic **logo, signature, and stamp** automatically saved and available — so they persist after a page reload and appear pre-filled in both the Prescription and Medical Report creators, without needing to click "Save to Library" each time.
 
-Recreate two document generators from the `DrSMY/documents` (DocuGenie) project inside this TanStack Start app: a **Prescription creator** and a **Medical Report creator**. Each has an editor form on the left and a live A4-style document preview on the right, with PDF and PNG download. A home page links to both. The original's clinical look (cream `#FAF9F6`-style background, dark teal `#173B3D` accents, rounded cards) is reproduced. AI-powered text parsing/enhancement is wired through Lovable AI.
+## Current behavior
+- Active logo/signature/stamp live only in component state (`data.logo`, `data.signature`, `data.stamp`) and start empty.
+- They're only persisted if the user manually clicks "Save to Library" (stored in `localStorage` lists `docgenie_logos`, `docgenie_signatures`, `docgenie_stamps`).
+- On reload, the active selection is lost; the user has to re-pick from the library.
 
-## Routes & navigation
+## Changes
 
-```text
-/                  Home — two cards: "Prescription" and "Medical Report"
-/prescription      Prescription editor + live preview + export
-/medical-report    Medical report editor + live preview + export
-```
+### 1. Persist the active selection
+Add three new localStorage keys for the *currently active* assets:
+- `docgenie_active_logo`
+- `docgenie_active_signature`
+- `docgenie_active_stamp`
 
-Each route gets its own `head()` (unique title + description). Home uses cards with icons (Pill, ClipboardList).
+Create a small helper hook (e.g. `useLocalStorageString`) in `src/components/EditorLayout.tsx` alongside the existing `useLocalStorageList`, to read/write a single string value.
 
-## What gets built
+### 2. Wire into both route pages
+In `src/routes/prescription.tsx` and `src/routes/medical-report.tsx`:
+- On mount, initialize `data.logo`, `data.signature`, `data.stamp` from the active-asset localStorage keys (falling back to the existing defaults).
+- Whenever the active logo/signature/stamp changes, write it back to the corresponding active key (and clear the key when removed).
 
-**Dependencies** (added via bun): `lucide-react`, `jspdf`, `html2canvas`.
+### 3. Auto-save uploads to the library
+In both `PrescriptionForm.tsx` and `MedicalReportForm.tsx`:
+- When a new logo/signature/stamp is uploaded, automatically add it to its library list (if not already present) instead of requiring the manual "Save to Library" click — and set it as the active asset.
+- Keep the existing library grid and manual remove (X) controls so users can still manage/delete saved assets.
 
-**Shared library**
-- `src/lib/dateUtils.ts` — `getTodayDate`, `getFormattedDate` (ported).
-- `src/lib/pdfService.ts` — `generatePDF` / `generatePNG` using html2canvas + jsPDF (client-only; ported as-is). Captures a target element by id, clones it at A4 width, renders to canvas, exports.
-- `src/lib/types.ts` — `PrescriptionData`, `PrescriptionMedication`, `MedicalReportData` interfaces (ported, trimmed to the two document types).
+## Result
+Once a user uploads or selects a logo, signature, or stamp, it is remembered: it stays attached on reload and is shared across both the Prescription and Medical Report creators, and remains in the library for quick re-selection.
 
-**Prescription feature**
-- `src/components/prescription/PrescriptionForm.tsx` — clinic/doctor fields, patient fields, eRx ID, medication rows (add/remove, quantity, dosage, instructions), built-in common-meds quick-add + searchable user med library persisted in `localStorage`, notes/warnings/footer, and image uploads (signature, stamp, logo) with a reusable saved-asset library.
-- `src/components/prescription/PrescriptionPreview.tsx` — A4 document layout matching the original.
-- AI: "Paste text → auto-fill prescription" (parsePrescription) and medication parsing.
-
-**Medical Report feature**
-- `src/components/medical-report/MedicalReportForm.tsx` — report/consultation dates, physician, patient, vitals (height/weight/BMI/goal), clinical summary, flags, assessment, treatment plan, prognosis, notes, footer, and the same signature/stamp/logo uploads.
-- `src/components/medical-report/MedicalReportPreview.tsx` — A4 document layout matching the original.
-- AI: "Enhance text" buttons on the long free-text fields (clinical summary, assessment, treatment plan, etc.).
-
-**Reusable UI**
-- `src/components/AssetUpload.tsx` — shared signature/stamp/logo upload + saved-library widget used by both forms.
-- A shared editor layout shell (form column + sticky preview column, with Download PDF / Download PNG buttons).
-
-State lives in each route component (seeded with the original sensible defaults). Saved signatures/stamps/logos and the medication database persist to `localStorage` so they're reusable across both creators.
-
-## AI integration (Lovable AI)
-
-The original calls Google Gemini directly from the browser with a `GEMINI_API_KEY`. That is replaced with Lovable AI through a server boundary — no user key, no browser exposure:
-
-- Enable Lovable Cloud / ensure `LOVABLE_API_KEY` exists.
-- `src/lib/ai-gateway.server.ts` — Lovable AI Gateway provider helper.
-- `src/lib/ai.functions.ts` — two `createServerFn` calls:
-  - `parsePrescription(text)` → structured JSON (clinic, doctor, patient, medications[]) via the AI SDK `Output` API.
-  - `enhanceText(text, context)` → improved professional copy for report fields.
-- Forms call these via `useServerFn`, with loading spinners and error handling (including 429/402 messaging). If AI is unavailable, manual editing still works fully.
-
-## Design
-
-Match the original: cream page background, white rounded-3xl cards with subtle borders, dark teal (`#173B3D`) headings/accents, uppercase tracked section labels, lucide icons. Document previews mirror the original A4 typography and spacing. Tokens added to `src/styles.css` where practical; the document previews keep their literal print colors for fidelity.
-
-## Out of scope
-
-Invoice, Resume, Certificate, Sign-&-Fill, and Quotation creators; the AI connectivity/quota status banner and quota modal; any auth or database persistence (assets/meds stay in `localStorage`).
-
-## Verification
-
-Build passes; both routes render form + live preview; editing updates the preview; PDF and PNG download work; AI auto-fill and enhance return results or show a clean error; home cards navigate correctly.
+## Technical notes
+- Shared storage keys mean a logo/signature/stamp saved in one creator is available in the other (the library keys are already shared; this extends the same to the active selection).
+- All persistence stays client-side via `localStorage`; no backend changes.

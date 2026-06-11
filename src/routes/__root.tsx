@@ -77,14 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Prescribe buddy" },
+      { name: "description", content: "Generates medical prescriptions and reports, with optional Rx dispensed stamp and saved clinic branding." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Prescribe buddy" },
+      { property: "og:description", content: "Generates medical prescriptions and reports, with optional Rx dispensed stamp and saved clinic branding." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Prescribe buddy" },
+      { name: "twitter:description", content: "Generates medical prescriptions and reports, with optional Rx dispensed stamp and saved clinic branding." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/636c14f4-db0e-473a-82ca-90f895bd7388/id-preview-1caa7aea--f6f448ad-e77d-4b20-a632-c260cd0ee9fe.lovable.app-1781163652259.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/636c14f4-db0e-473a-82ca-90f895bd7388/id-preview-1caa7aea--f6f448ad-e77d-4b20-a632-c260cd0ee9fe.lovable.app-1781163652259.png" },
     ],
     links: [
       {

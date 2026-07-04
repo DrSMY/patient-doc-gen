@@ -219,12 +219,15 @@ function AdminPage() {
               <ShieldCheck className="h-5 w-5" /> Admin
             </h1>
           </div>
-          <button
-            onClick={() => supabase.auth.signOut()}
-            className="rounded-xl border border-[#E5E3DD] bg-white px-3 py-2 text-xs font-bold uppercase tracking-widest text-[#173B3D] hover:bg-[#f8efe1]"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-2">
+            <ChangePasswordDialog />
+            <button
+              onClick={() => supabase.auth.signOut()}
+              className="rounded-xl border border-[#E5E3DD] bg-white px-3 py-2 text-xs font-bold uppercase tracking-widest text-[#173B3D] hover:bg-[#f8efe1]"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 

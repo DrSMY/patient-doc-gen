@@ -104,7 +104,7 @@ export const getMyStatus = createServerFn({ method: "GET" })
     // Create the profile if it does not exist yet.
     const { data: existing } = await supabase
       .from("profiles")
-      .select("id, approved")
+      .select("id, approved, email")
       .eq("id", userId)
       .maybeSingle();
 

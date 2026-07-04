@@ -1,7 +1,38 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Download, ImageIcon, ArrowLeft, Loader2 } from "lucide-react";
+import { Download, ImageIcon, ArrowLeft, Loader2, LogIn, LogOut } from "lucide-react";
 import { generatePDF, generatePNG } from "@/lib/pdfService";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+
+function AccountControl() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) {
+    return (
+      <Link
+        to="/auth"
+        className="flex items-center gap-1.5 rounded-xl border border-[#E5E3DD] bg-white px-3 py-2 text-xs font-bold uppercase tracking-widest text-[#173B3D] transition-all hover:bg-[#f8efe1]"
+      >
+        <LogIn className="h-4 w-4" /> Sign in
+      </Link>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <span className="hidden max-w-[160px] truncate text-xs font-semibold text-[#6B7575] sm:inline">
+        {user.email}
+      </span>
+      <button
+        onClick={() => supabase.auth.signOut()}
+        title="Sign out"
+        className="flex items-center gap-1.5 rounded-xl border border-[#E5E3DD] bg-white px-3 py-2 text-xs font-bold uppercase tracking-widest text-[#173B3D] transition-all hover:bg-[#f8efe1]"
+      >
+        <LogOut className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
 
 export function useLocalStorageList(key: string) {
   const [list, setList] = useState<string[]>([]);
@@ -84,6 +115,7 @@ export function EditorLayout({
             <h1 className="text-base font-bold tracking-tight">{title}</h1>
           </div>
           <div className="flex items-center gap-2">
+            <AccountControl />
             <button
               onClick={handlePng}
               disabled={busy !== null}

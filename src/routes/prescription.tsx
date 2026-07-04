@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { PrescriptionForm } from "@/components/prescription/PrescriptionForm";
 import { PrescriptionPreview } from "@/components/prescription/PrescriptionPreview";
 import { EditorLayout, useLocalStorageList } from "@/components/EditorLayout";
+import { useCloudAssetSync } from "@/hooks/useCloudSync";
 import type { PrescriptionData } from "@/lib/types";
 import { getFormattedDate } from "@/lib/dateUtils";
 
@@ -86,6 +87,19 @@ function PrescriptionPage() {
     if (data.stamp) localStorage.setItem("docgenie_active_stamp", data.stamp);
     else localStorage.removeItem("docgenie_active_stamp");
   }, [data.logo, data.signature, data.stamp]);
+
+  // Sync active logo/signature/stamp with the signed-in user's account.
+  const applyAssets = useCallback(
+    (next: { logo?: string; signature?: string; stamp?: string }) =>
+      setData((d) => ({ ...d, ...next })),
+    [],
+  );
+  useCloudAssetSync(
+    { logo: data.logo, signature: data.signature, stamp: data.stamp },
+    applyAssets,
+  );
+
+
 
   return (
     <EditorLayout

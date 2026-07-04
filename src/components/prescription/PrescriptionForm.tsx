@@ -4,6 +4,7 @@ import { Plus, Trash2, Upload, X, Sparkles, Loader2, Search, Heart, Database, Bo
 import { parseMedications, parsePrescription } from '@/lib/geminiService';
 import { getFormattedDate } from '@/lib/dateUtils';
 import { Switch } from '@/components/ui/switch';
+import { useCloudMedications } from '@/hooks/useCloudSync';
 
 interface PrescriptionFormProps {
   data: PrescriptionData;
@@ -59,6 +60,9 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   const [bulkImportText, setBulkImportText] = useState('');
   const bulkFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Keep the medication database synced with the user's account (when signed in).
+  const { persist: persistMeds } = useCloudMedications(userMedDatabase as any, setUserMedDatabase as any);
+
   // Load med database from local storage (images now handled by App)
   useEffect(() => {
     const savedMeds = localStorage.getItem('docgenie_med_database');
@@ -106,16 +110,14 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
     }
 
     const updated = [cleanMed, ...userMedDatabase];
-    setUserMedDatabase(updated);
-    localStorage.setItem('docgenie_med_database', JSON.stringify(updated));
+    persistMeds(updated);
     setNewDbMed({ name: '', dosage: '', instructions: '' });
     setShowDbForm(false);
   };
 
   const removeFromDatabase = (idx: number) => {
     const updated = userMedDatabase.filter((_, i) => i !== idx);
-    setUserMedDatabase(updated);
-    localStorage.setItem('docgenie_med_database', JSON.stringify(updated));
+    persistMeds(updated);
   };
 
   // Parse a delimited row into [name, dosage, instructions].
@@ -161,8 +163,7 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
       merged.unshift(med);
       added++;
     });
-    setUserMedDatabase(merged);
-    localStorage.setItem('docgenie_med_database', JSON.stringify(merged));
+    persistMeds(merged);
     return { added, skipped };
   };
 

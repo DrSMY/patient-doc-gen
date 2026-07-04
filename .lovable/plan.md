@@ -1,36 +1,36 @@
-# Always-Save Logo, Signature & Stamp
-
 ## Goal
-Make the currently attached clinic **logo, signature, and stamp** automatically saved and available — so they persist after a page reload and appear pre-filled in both the Prescription and Medical Report creators, without needing to click "Save to Library" each time.
+Move the saved **medication database, clinic logo, signature, and stamp** from browser-only storage into **Lovable Cloud**, tied to each user's account — so once saved, they follow the user across devices and browsers and are always available.
 
-## Current behavior
-- Active logo/signature/stamp live only in component state (`data.logo`, `data.signature`, `data.stamp`) and start empty.
-- They're only persisted if the user manually clicks "Save to Library" (stored in `localStorage` lists `docgenie_logos`, `docgenie_signatures`, `docgenie_stamps`).
-- On reload, the active selection is lost; the user has to re-pick from the library.
+## Why this needs accounts
+"Per account" storage requires knowing *who* the user is. So this adds a lightweight **login** (email/password + Google sign-in) so each user's branding and medication list is private to them.
 
-## Changes
+## What gets built
 
-### 1. Persist the active selection
-Add three new localStorage keys for the *currently active* assets:
-- `docgenie_active_logo`
-- `docgenie_active_signature`
-- `docgenie_active_stamp`
+### 1. Enable Lovable Cloud
+Provision the backend (database + auth + storage).
 
-Create a small helper hook (e.g. `useLocalStorageString`) in `src/components/EditorLayout.tsx` alongside the existing `useLocalStorageList`, to read/write a single string value.
+### 2. Authentication
+- Add an `/auth` route with email/password and Google sign-in.
+- Add a small account indicator in the editor header (shows signed-in email + sign out).
+- Keep the prescription/report editors usable; the "save to my account" features light up once signed in.
 
-### 2. Wire into both route pages
-In `src/routes/prescription.tsx` and `src/routes/medical-report.tsx`:
-- On mount, initialize `data.logo`, `data.signature`, `data.stamp` from the active-asset localStorage keys (falling back to the existing defaults).
-- Whenever the active logo/signature/stamp changes, write it back to the corresponding active key (and clear the key when removed).
+### 3. Database tables (per user, protected by row-level security)
+- `clinic_assets` — one row per user holding the active `logo`, `signature`, `stamp` (stored as data URLs / uploaded files).
+- `medications` — the user's medication database (`name`, `dosage`, `instructions`), supporting the existing bulk import.
 
-### 3. Auto-save uploads to the library
-In both `PrescriptionForm.tsx` and `MedicalReportForm.tsx`:
-- When a new logo/signature/stamp is uploaded, automatically add it to its library list (if not already present) instead of requiring the manual "Save to Library" click — and set it as the active asset.
-- Keep the existing library grid and manual remove (X) controls so users can still manage/delete saved assets.
+Each table:
+- `user_id` FK to the account, RLS so users only see their own rows.
+- Proper GRANTs for the Data API.
+
+### 4. Wire the app to Cloud
+- On load (when signed in), fetch the user's assets + medications from Cloud instead of localStorage and pre-fill the forms.
+- Saving a logo/signature/stamp or adding/importing medications writes to Cloud.
+- Keep localStorage as an offline fallback for signed-out use, and offer a one-time migration of existing local data into the account on first sign-in.
 
 ## Result
-Once a user uploads or selects a logo, signature, or stamp, it is remembered: it stays attached on reload and is shared across both the Prescription and Medical Report creators, and remains in the library for quick re-selection.
+After signing in once, a user's clinic logo, signature, stamp, and full medication database are permanently kept in their account and appear automatically in both the Prescription and Medical Report creators on any device.
 
 ## Technical notes
-- Shared storage keys mean a logo/signature/stamp saved in one creator is available in the other (the library keys are already shared; this extends the same to the active selection).
-- All persistence stays client-side via `localStorage`; no backend changes.
+- Assets stored as text (data URLs) in `clinic_assets` for simplicity; can move to Storage buckets later if files get large.
+- All reads/writes go through TanStack server functions with `requireSupabaseAuth`; no service-role key in the client.
+- Medication reads/writes replace the current `docgenie_medications` localStorage logic while keeping the same UI (including bulk import).

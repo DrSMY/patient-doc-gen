@@ -6,7 +6,7 @@ import {
   replaceMedications,
 } from "@/lib/cloud.functions";
 
-type Med = { name: string; dosage?: string; instructions?: string };
+type Med = { name?: string; dosage?: string; instructions?: string };
 
 /**
  * Keeps the active logo / signature / stamp synced with the user's account.

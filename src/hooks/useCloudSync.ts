@@ -95,11 +95,13 @@ export function useCloudMedications(
         } else if (medsRef.current.length) {
           replaceMedications({
             data: {
-              meds: medsRef.current.map((m) => ({
-                name: m.name || "",
-                dosage: m.dosage || "",
-                instructions: m.instructions || "",
-              })),
+              meds: medsRef.current
+                .filter((m) => (m.name || "").trim())
+                .map((m) => ({
+                  name: (m.name || "").trim(),
+                  dosage: m.dosage || "",
+                  instructions: m.instructions || "",
+                })),
             },
           }).catch(() => {});
         }

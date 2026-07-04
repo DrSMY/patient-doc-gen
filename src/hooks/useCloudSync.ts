@@ -115,11 +115,13 @@ export function useCloudMedications(
     if (user && pulled.current === user.id) {
       replaceMedications({
         data: {
-          meds: updated.map((m) => ({
-            name: m.name || "",
-            dosage: m.dosage || "",
-            instructions: m.instructions || "",
-          })),
+          meds: updated
+            .filter((m) => (m.name || "").trim())
+            .map((m) => ({
+              name: (m.name || "").trim(),
+              dosage: m.dosage || "",
+              instructions: m.instructions || "",
+            })),
         },
       }).catch(() => {});
     }

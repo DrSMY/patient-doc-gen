@@ -114,6 +114,73 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
     localStorage.setItem('docgenie_med_database', JSON.stringify(updated));
   };
 
+  // Parse a delimited row into [name, dosage, instructions].
+  const splitRow = (line: string): string[] => {
+    if (line.includes('\t')) return line.split('\t');
+    // CSV with basic quote support
+    const out: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        out.push(cur); cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    out.push(cur);
+    return out;
+  };
+
+  const bulkImportToDatabase = (raw: string): { added: number; skipped: number } => {
+    const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const parsed: Partial<PrescriptionMedication>[] = [];
+    lines.forEach((line, idx) => {
+      const cols = splitRow(line).map(c => c.trim().replace(/^"|"$/g, ''));
+      const name = cols[0] || '';
+      // Skip a header row like "name,dosage,instructions"
+      if (idx === 0 && /^(drug\s*)?name$/i.test(name) && /dosage|dose/i.test(cols[1] || '')) return;
+      if (!name) return;
+      parsed.push({ name, dosage: cols[1] || '', instructions: cols[2] || '' });
+    });
+
+    const merged = [...userMedDatabase];
+    let added = 0;
+    let skipped = 0;
+    parsed.forEach(med => {
+      const exists = merged.some(m => m.name?.toLowerCase() === med.name?.toLowerCase() && (m.dosage || '') === (med.dosage || ''));
+      if (exists) { skipped++; return; }
+      merged.unshift(med);
+      added++;
+    });
+    setUserMedDatabase(merged);
+    localStorage.setItem('docgenie_med_database', JSON.stringify(merged));
+    return { added, skipped };
+  };
+
+  const handleBulkImport = () => {
+    if (!bulkImportText.trim()) return;
+    const { added, skipped } = bulkImportToDatabase(bulkImportText);
+    setBulkImportText('');
+    alert(`Imported ${added} medication${added === 1 ? '' : 's'}${skipped ? ` · ${skipped} duplicate${skipped === 1 ? '' : 's'} skipped` : ''}.`);
+  };
+
+  const handleBulkFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const { added, skipped } = bulkImportToDatabase(reader.result as string);
+      alert(`Imported ${added} medication${added === 1 ? '' : 's'}${skipped ? ` · ${skipped} duplicate${skipped === 1 ? '' : 's'} skipped` : ''}.`);
+    };
+    reader.readAsText(file);
+    if (bulkFileInputRef.current) bulkFileInputRef.current.value = '';
+  };
+
   const handleChange = (field: keyof PrescriptionData, value: any) => {
     onChange({ ...data, [field]: value });
   };

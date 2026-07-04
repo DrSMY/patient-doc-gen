@@ -610,6 +610,45 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
               </button>
             </div>
 
+            {/* Bulk Import */}
+            <div className="p-5 bg-[#F5F4F0] border border-[#E5E3DD] rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[10px] font-black text-[#173B3D] uppercase tracking-widest flex items-center gap-1.5">
+                  <Upload className="w-3 h-3" /> Bulk Import
+                </h4>
+                <button
+                  onClick={() => bulkFileInputRef.current?.click()}
+                  className="text-[10px] font-black text-[#1E4C4E] uppercase tracking-widest hover:underline"
+                >
+                  Upload CSV
+                </button>
+                <input
+                  ref={bulkFileInputRef}
+                  type="file"
+                  accept=".csv,.tsv,.txt,text/csv,text/plain"
+                  className="hidden"
+                  onChange={handleBulkFileUpload}
+                />
+              </div>
+              <p className="text-[10px] text-[#6B7575] leading-relaxed">
+                Paste one medication per line as <span className="font-bold">Name, Dosage, Instructions</span> (comma or tab separated). A header row is skipped automatically.
+              </p>
+              <textarea
+                value={bulkImportText}
+                onChange={(e) => setBulkImportText(e.target.value)}
+                placeholder={"Amoxicillin, 500 mg, 1 tab PO TID for 7 days\nMetformin, 500 mg, 1 tab PO BID with meals"}
+                className="w-full bg-white border border-[#E5E3DD] rounded-md px-3 py-2 text-xs font-medium outline-none focus:border-[#173B3D] min-h-[90px] font-mono"
+              />
+              <button
+                onClick={handleBulkImport}
+                disabled={!bulkImportText.trim()}
+                className="w-full bg-[#1E4C4E] text-white py-2 rounded-xl text-xs font-bold shadow-md hover:bg-[#173B3D] disabled:opacity-50 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+              >
+                <Database className="w-3.5 h-3.5" /> Import to Database
+              </button>
+            </div>
+
+
             {userMedDatabase.length > 0 && (
               <div className="space-y-2">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Saved Medications ({userMedDatabase.length})</p>

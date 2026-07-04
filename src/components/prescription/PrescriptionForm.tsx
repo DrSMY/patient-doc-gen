@@ -163,8 +163,7 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
       merged.unshift(med);
       added++;
     });
-    setUserMedDatabase(merged);
-    localStorage.setItem('docgenie_med_database', JSON.stringify(merged));
+    persistMeds(merged);
     return { added, skipped };
   };
 

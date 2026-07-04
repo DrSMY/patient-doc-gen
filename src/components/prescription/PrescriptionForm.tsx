@@ -55,6 +55,10 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   const [newDbMed, setNewDbMed] = useState({ name: '', dosage: '', instructions: '' });
   const [showDbForm, setShowDbForm] = useState(false);
 
+  // Bulk import state
+  const [bulkImportText, setBulkImportText] = useState('');
+  const bulkFileInputRef = useRef<HTMLInputElement>(null);
+
   // Load med database from local storage (images now handled by App)
   useEffect(() => {
     const savedMeds = localStorage.getItem('docgenie_med_database');

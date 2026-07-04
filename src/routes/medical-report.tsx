@@ -88,6 +88,19 @@ function MedicalReportPage() {
     else localStorage.removeItem("docgenie_active_stamp");
   }, [data.logo, data.signature, data.stamp]);
 
+  // Sync active logo/signature/stamp with the signed-in user's account.
+  const applyAssets = useCallback(
+    (next: { logo?: string; signature?: string; stamp?: string }) =>
+      setData((d) => ({ ...d, ...next })),
+    [],
+  );
+  useCloudAssetSync(
+    { logo: data.logo, signature: data.signature, stamp: data.stamp },
+    applyAssets,
+  );
+
+
+
   return (
     <EditorLayout
       title="Medical Report"

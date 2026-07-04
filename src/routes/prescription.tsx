@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { PrescriptionForm } from "@/components/prescription/PrescriptionForm";
 import { PrescriptionPreview } from "@/components/prescription/PrescriptionPreview";
 import { EditorLayout, useLocalStorageList } from "@/components/EditorLayout";
+import { useCloudAssetSync } from "@/hooks/useCloudSync";
 import type { PrescriptionData } from "@/lib/types";
 import { getFormattedDate } from "@/lib/dateUtils";
 

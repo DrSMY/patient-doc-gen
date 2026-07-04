@@ -99,14 +99,45 @@ function PrescriptionPage() {
     { logo: data.logo, signature: data.signature, stamp: data.stamp },
     applyAssets,
   );
+  const erxLabel = `Erx ${data.erxIdSerial}-${data.erxIdMonth}-${data.erxIdYear}`;
+  const fileName = `${erxLabel}- ${data.patientName || "patient"}- prescription`;
 
-
+  // On download: save the record to the database, then advance the eRx serial.
+  const handleDownload = useCallback(async () => {
+    try {
+      await saveDownloadedPrescription({
+        data: {
+          erx: erxLabel,
+          patient_name: data.patientName || "",
+          patient_age: data.patientDob || "",
+          patient_gender: data.patientGender || "",
+          date_created: data.date || "",
+          medications: data.medications.map((m) => ({
+            name: m.name || "",
+            dosage: m.dosage || "",
+            instructions: m.instructions || "",
+            quantity: m.quantity || "",
+          })),
+        },
+      });
+    } catch {
+      /* saving is best-effort; do not block the download */
+    }
+    // Advance the eRx serial for the next prescription (00001 -> 00002).
+    setData((d) => {
+      const next = (parseInt(d.erxIdSerial || "0", 10) + 1)
+        .toString()
+        .padStart(5, "0");
+      return { ...d, erxIdSerial: next };
+    });
+  }, [data, erxLabel]);
 
   return (
     <EditorLayout
       title="Prescription"
       previewId="prescription-preview"
-      fileName={`prescription-${data.patientName || "document"}`}
+      fileName={fileName}
+      onDownload={handleDownload}
       form={
         <PrescriptionForm
           data={data}

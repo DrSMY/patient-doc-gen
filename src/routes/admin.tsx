@@ -10,15 +10,19 @@ import {
   UserPlus,
   Users,
   FileText,
+  Download,
+  KeyRound,
 } from "lucide-react";
 import { useMyStatus } from "@/hooks/useMyStatus";
 import { supabase } from "@/integrations/supabase/client";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import {
   adminListUsers,
   adminSetApproval,
   adminCreateUser,
   adminDeleteUser,
   adminListPrescriptions,
+  adminSetUserPassword,
 } from "@/lib/cloud.functions";
 
 export const Route = createFileRoute("/admin")({

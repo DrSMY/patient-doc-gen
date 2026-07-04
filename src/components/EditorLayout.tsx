@@ -14,6 +14,7 @@ import { useEffect } from "react";
 import { generatePDF, generatePNG } from "@/lib/pdfService";
 import { useMyStatus } from "@/hooks/useMyStatus";
 import { supabase } from "@/integrations/supabase/client";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 
 function AccountControl({ isAdmin }: { isAdmin?: boolean }) {
   const { user, loading } = useMyStatus();

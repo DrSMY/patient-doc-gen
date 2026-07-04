@@ -389,7 +389,17 @@ function AdminPage() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-[#E5E3DD] bg-white">
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={exportCsv}
+                disabled={records.length === 0}
+                className="flex items-center gap-2 rounded-xl bg-[#173B3D] px-4 py-2 text-sm font-bold text-white hover:bg-[#0f2a2b] disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" /> Export CSV
+              </button>
+            </div>
+            <div className="overflow-x-auto rounded-2xl border border-[#E5E3DD] bg-white">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#E5E3DD] text-left text-[10px] uppercase tracking-wider text-[#6B7575]">

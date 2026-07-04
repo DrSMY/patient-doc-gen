@@ -4,6 +4,7 @@ import { Plus, Trash2, Upload, X, Sparkles, Loader2, Search, Heart, Database, Bo
 import { parseMedications, parsePrescription } from '@/lib/geminiService';
 import { getFormattedDate } from '@/lib/dateUtils';
 import { Switch } from '@/components/ui/switch';
+import { useCloudMedications } from '@/hooks/useCloudSync';
 
 interface PrescriptionFormProps {
   data: PrescriptionData;

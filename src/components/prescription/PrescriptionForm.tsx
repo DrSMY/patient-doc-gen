@@ -60,6 +60,9 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   const [bulkImportText, setBulkImportText] = useState('');
   const bulkFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Keep the medication database synced with the user's account (when signed in).
+  const { persist: persistMeds } = useCloudMedications(userMedDatabase as any, setUserMedDatabase as any);
+
   // Load med database from local storage (images now handled by App)
   useEffect(() => {
     const savedMeds = localStorage.getItem('docgenie_med_database');

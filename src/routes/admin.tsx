@@ -359,6 +359,13 @@ function AdminPage() {
                             </button>
                           )}
                           <button
+                            onClick={() => resetPassword(u.id, u.email)}
+                            title="Reset password"
+                            className="rounded-lg border border-[#E5E3DD] p-1.5 text-[#173B3D] hover:bg-[#f8efe1]"
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </button>
+                          <button
                             onClick={() => removeUser(u.id)}
                             disabled={u.isAdmin}
                             title="Delete user"

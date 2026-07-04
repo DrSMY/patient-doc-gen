@@ -55,6 +55,10 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   const [newDbMed, setNewDbMed] = useState({ name: '', dosage: '', instructions: '' });
   const [showDbForm, setShowDbForm] = useState(false);
 
+  // Bulk import state
+  const [bulkImportText, setBulkImportText] = useState('');
+  const bulkFileInputRef = useRef<HTMLInputElement>(null);
+
   // Load med database from local storage (images now handled by App)
   useEffect(() => {
     const savedMeds = localStorage.getItem('docgenie_med_database');
@@ -112,6 +116,73 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
     const updated = userMedDatabase.filter((_, i) => i !== idx);
     setUserMedDatabase(updated);
     localStorage.setItem('docgenie_med_database', JSON.stringify(updated));
+  };
+
+  // Parse a delimited row into [name, dosage, instructions].
+  const splitRow = (line: string): string[] => {
+    if (line.includes('\t')) return line.split('\t');
+    // CSV with basic quote support
+    const out: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        out.push(cur); cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    out.push(cur);
+    return out;
+  };
+
+  const bulkImportToDatabase = (raw: string): { added: number; skipped: number } => {
+    const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const parsed: Partial<PrescriptionMedication>[] = [];
+    lines.forEach((line, idx) => {
+      const cols = splitRow(line).map(c => c.trim().replace(/^"|"$/g, ''));
+      const name = cols[0] || '';
+      // Skip a header row like "name,dosage,instructions"
+      if (idx === 0 && /^(drug\s*)?name$/i.test(name) && /dosage|dose/i.test(cols[1] || '')) return;
+      if (!name) return;
+      parsed.push({ name, dosage: cols[1] || '', instructions: cols[2] || '' });
+    });
+
+    const merged = [...userMedDatabase];
+    let added = 0;
+    let skipped = 0;
+    parsed.forEach(med => {
+      const exists = merged.some(m => m.name?.toLowerCase() === med.name?.toLowerCase() && (m.dosage || '') === (med.dosage || ''));
+      if (exists) { skipped++; return; }
+      merged.unshift(med);
+      added++;
+    });
+    setUserMedDatabase(merged);
+    localStorage.setItem('docgenie_med_database', JSON.stringify(merged));
+    return { added, skipped };
+  };
+
+  const handleBulkImport = () => {
+    if (!bulkImportText.trim()) return;
+    const { added, skipped } = bulkImportToDatabase(bulkImportText);
+    setBulkImportText('');
+    alert(`Imported ${added} medication${added === 1 ? '' : 's'}${skipped ? ` · ${skipped} duplicate${skipped === 1 ? '' : 's'} skipped` : ''}.`);
+  };
+
+  const handleBulkFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const { added, skipped } = bulkImportToDatabase(reader.result as string);
+      alert(`Imported ${added} medication${added === 1 ? '' : 's'}${skipped ? ` · ${skipped} duplicate${skipped === 1 ? '' : 's'} skipped` : ''}.`);
+    };
+    reader.readAsText(file);
+    if (bulkFileInputRef.current) bulkFileInputRef.current.value = '';
   };
 
   const handleChange = (field: keyof PrescriptionData, value: any) => {
@@ -538,6 +609,45 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
                 <Save className="w-3.5 h-3.5" /> Save to Database
               </button>
             </div>
+
+            {/* Bulk Import */}
+            <div className="p-5 bg-[#F5F4F0] border border-[#E5E3DD] rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[10px] font-black text-[#173B3D] uppercase tracking-widest flex items-center gap-1.5">
+                  <Upload className="w-3 h-3" /> Bulk Import
+                </h4>
+                <button
+                  onClick={() => bulkFileInputRef.current?.click()}
+                  className="text-[10px] font-black text-[#1E4C4E] uppercase tracking-widest hover:underline"
+                >
+                  Upload CSV
+                </button>
+                <input
+                  ref={bulkFileInputRef}
+                  type="file"
+                  accept=".csv,.tsv,.txt,text/csv,text/plain"
+                  className="hidden"
+                  onChange={handleBulkFileUpload}
+                />
+              </div>
+              <p className="text-[10px] text-[#6B7575] leading-relaxed">
+                Paste one medication per line as <span className="font-bold">Name, Dosage, Instructions</span> (comma or tab separated). A header row is skipped automatically.
+              </p>
+              <textarea
+                value={bulkImportText}
+                onChange={(e) => setBulkImportText(e.target.value)}
+                placeholder={"Amoxicillin, 500 mg, 1 tab PO TID for 7 days\nMetformin, 500 mg, 1 tab PO BID with meals"}
+                className="w-full bg-white border border-[#E5E3DD] rounded-md px-3 py-2 text-xs font-medium outline-none focus:border-[#173B3D] min-h-[90px] font-mono"
+              />
+              <button
+                onClick={handleBulkImport}
+                disabled={!bulkImportText.trim()}
+                className="w-full bg-[#1E4C4E] text-white py-2 rounded-xl text-xs font-bold shadow-md hover:bg-[#173B3D] disabled:opacity-50 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+              >
+                <Database className="w-3.5 h-3.5" /> Import to Database
+              </button>
+            </div>
+
 
             {userMedDatabase.length > 0 && (
               <div className="space-y-2">

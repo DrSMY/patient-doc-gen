@@ -110,16 +110,14 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
     }
 
     const updated = [cleanMed, ...userMedDatabase];
-    setUserMedDatabase(updated);
-    localStorage.setItem('docgenie_med_database', JSON.stringify(updated));
+    persistMeds(updated);
     setNewDbMed({ name: '', dosage: '', instructions: '' });
     setShowDbForm(false);
   };
 
   const removeFromDatabase = (idx: number) => {
     const updated = userMedDatabase.filter((_, i) => i !== idx);
-    setUserMedDatabase(updated);
-    localStorage.setItem('docgenie_med_database', JSON.stringify(updated));
+    persistMeds(updated);
   };
 
   // Parse a delimited row into [name, dosage, instructions].

@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clinic_assets: {
+        Row: {
+          created_at: string
+          logo: string | null
+          signature: string | null
+          stamp: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          logo?: string | null
+          signature?: string | null
+          stamp?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          logo?: string | null
+          signature?: string | null
+          stamp?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      medications: {
+        Row: {
+          created_at: string
+          dosage: string
+          id: string
+          instructions: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dosage?: string
+          id?: string
+          instructions?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dosage?: string
+          id?: string
+          instructions?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

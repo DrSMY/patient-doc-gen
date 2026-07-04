@@ -115,6 +115,7 @@ export function EditorLayout({
             <h1 className="text-base font-bold tracking-tight">{title}</h1>
           </div>
           <div className="flex items-center gap-2">
+            <AccountControl />
             <button
               onClick={handlePng}
               disabled={busy !== null}

@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { MedicalReportForm } from "@/components/medical-report/MedicalReportForm";
 import { MedicalReportPreview } from "@/components/medical-report/MedicalReportPreview";
 import { EditorLayout, useLocalStorageList } from "@/components/EditorLayout";
+import { useCloudAssetSync } from "@/hooks/useCloudSync";
 import type { MedicalReportData } from "@/lib/types";
 import { getTodayDate } from "@/lib/dateUtils";
 

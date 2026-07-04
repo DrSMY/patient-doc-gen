@@ -1,12 +1,22 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Download, ImageIcon, ArrowLeft, Loader2, LogIn, LogOut } from "lucide-react";
+import {
+  Download,
+  ImageIcon,
+  ArrowLeft,
+  Loader2,
+  LogIn,
+  LogOut,
+  ShieldCheck,
+  Clock,
+} from "lucide-react";
+import { useEffect } from "react";
 import { generatePDF, generatePNG } from "@/lib/pdfService";
-import { useAuth } from "@/hooks/useAuth";
+import { useMyStatus } from "@/hooks/useMyStatus";
 import { supabase } from "@/integrations/supabase/client";
 
-function AccountControl() {
-  const { user, loading } = useAuth();
+function AccountControl({ isAdmin }: { isAdmin?: boolean }) {
+  const { user, loading } = useMyStatus();
   if (loading) return null;
   if (!user) {
     return (
@@ -20,6 +30,14 @@ function AccountControl() {
   }
   return (
     <div className="flex items-center gap-2">
+      {isAdmin && (
+        <Link
+          to="/admin"
+          className="flex items-center gap-1.5 rounded-xl border border-[#173B3D] bg-[#173B3D] px-3 py-2 text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-[#0f2a2b]"
+        >
+          <ShieldCheck className="h-4 w-4" /> Admin
+        </Link>
+      )}
       <span className="hidden max-w-[160px] truncate text-xs font-semibold text-[#6B7575] sm:inline">
         {user.email}
       </span>
@@ -73,6 +91,28 @@ interface EditorLayoutProps {
   fileName: string;
   form: React.ReactNode;
   preview: React.ReactNode;
+  /** Called after a successful PDF/PNG download (e.g. to save + increment eRx). */
+  onDownload?: () => Promise<void> | void;
+}
+
+function GateScreen({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-[#fcfbf8] text-[#173B3D]">
+      <header className="border-b border-[#E5E3DD] px-5 py-3">
+        <Link
+          to="/"
+          className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-[#6B7575] hover:text-[#173B3D]"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </Link>
+      </header>
+      <div className="flex flex-1 items-center justify-center px-5 py-20">
+        <div className="w-full max-w-md rounded-2xl border border-[#E5E3DD] bg-white p-8 text-center shadow-sm">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function EditorLayout({
@@ -81,13 +121,16 @@ export function EditorLayout({
   fileName,
   form,
   preview,
+  onDownload,
 }: EditorLayoutProps) {
   const [busy, setBusy] = useState<null | "pdf" | "png">(null);
+  const { user, status, loading } = useMyStatus();
 
   const handlePdf = async () => {
     setBusy("pdf");
     try {
       await generatePDF(previewId, fileName);
+      await onDownload?.();
     } finally {
       setBusy(null);
     }
@@ -96,10 +139,57 @@ export function EditorLayout({
     setBusy("png");
     try {
       await generatePNG(previewId, fileName);
+      await onDownload?.();
     } finally {
       setBusy(null);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#fcfbf8]">
+        <Loader2 className="h-6 w-6 animate-spin text-[#173B3D]" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <GateScreen>
+        <LogIn className="mx-auto mb-4 h-8 w-8 text-[#173B3D]" />
+        <h1 className="text-xl font-bold">Sign in required</h1>
+        <p className="mt-2 text-sm text-[#6B7575]">
+          Please sign in to create and download prescriptions.
+        </p>
+        <Link
+          to="/auth"
+          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#173B3D] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#0f2a2b]"
+        >
+          <LogIn className="h-4 w-4" /> Sign in
+        </Link>
+      </GateScreen>
+    );
+  }
+
+  if (status && !status.approved) {
+    return (
+      <GateScreen>
+        <Clock className="mx-auto mb-4 h-8 w-8 text-[#173B3D]" />
+        <h1 className="text-xl font-bold">Waiting for approval</h1>
+        <p className="mt-2 text-sm text-[#6B7575]">
+          Your account (<span className="font-semibold">{user.email}</span>) is
+          pending admin approval. You&apos;ll be able to create prescriptions
+          once an administrator approves your access.
+        </p>
+        <button
+          onClick={() => supabase.auth.signOut()}
+          className="mt-6 inline-flex items-center gap-2 rounded-xl border border-[#E5E3DD] bg-white px-5 py-2.5 text-sm font-bold text-[#173B3D] hover:bg-[#f8efe1]"
+        >
+          <LogOut className="h-4 w-4" /> Sign out
+        </button>
+      </GateScreen>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#fcfbf8] text-[#173B3D]">
@@ -115,7 +205,7 @@ export function EditorLayout({
             <h1 className="text-base font-bold tracking-tight">{title}</h1>
           </div>
           <div className="flex items-center gap-2">
-            <AccountControl />
+            <AccountControl isAdmin={status?.isAdmin} />
             <button
               onClick={handlePng}
               disabled={busy !== null}

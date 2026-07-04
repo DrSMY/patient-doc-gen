@@ -10,15 +10,19 @@ import {
   UserPlus,
   Users,
   FileText,
+  Download,
+  KeyRound,
 } from "lucide-react";
 import { useMyStatus } from "@/hooks/useMyStatus";
 import { supabase } from "@/integrations/supabase/client";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import {
   adminListUsers,
   adminSetApproval,
   adminCreateUser,
   adminDeleteUser,
   adminListPrescriptions,
+  adminSetUserPassword,
 } from "@/lib/cloud.functions";
 
 export const Route = createFileRoute("/admin")({
@@ -128,6 +132,70 @@ function AdminPage() {
     }
   };
 
+  const resetPassword = async (id: string, email: string | null) => {
+    const pwd = prompt(`Set a new password for ${email ?? "this user"}:`);
+    if (!pwd) return;
+    if (pwd.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    try {
+      await adminSetUserPassword({ data: { userId: id, password: pwd } });
+      alert("Password updated.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Password update failed.");
+    }
+  };
+
+  const exportCsv = () => {
+    const esc = (v: unknown) => {
+      const s = String(v ?? "");
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const headers = [
+      "eRx",
+      "Patient",
+      "Age",
+      "Gender",
+      "Date",
+      "Medications",
+      "Doctor",
+      "Downloaded at",
+    ];
+    const rows = records.map((r) => {
+      const meds = (r.medications ?? [])
+        .map((m) =>
+          [m.name, m.dosage, m.quantity, m.instructions]
+            .filter(Boolean)
+            .join(" "),
+        )
+        .join(" | ");
+      return [
+        r.erx,
+        r.patient_name,
+        r.patient_age,
+        r.patient_gender,
+        r.date_created,
+        meds,
+        r.doctor_email ?? "",
+        new Date(r.created_at).toLocaleString(),
+      ]
+        .map(esc)
+        .join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob(["\ufeff" + csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `prescriptions-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+
   if (loading || !status?.isAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#fcfbf8]">
@@ -151,12 +219,15 @@ function AdminPage() {
               <ShieldCheck className="h-5 w-5" /> Admin
             </h1>
           </div>
-          <button
-            onClick={() => supabase.auth.signOut()}
-            className="rounded-xl border border-[#E5E3DD] bg-white px-3 py-2 text-xs font-bold uppercase tracking-widest text-[#173B3D] hover:bg-[#f8efe1]"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-2">
+            <ChangePasswordDialog />
+            <button
+              onClick={() => supabase.auth.signOut()}
+              className="rounded-xl border border-[#E5E3DD] bg-white px-3 py-2 text-xs font-bold uppercase tracking-widest text-[#173B3D] hover:bg-[#f8efe1]"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -288,6 +359,13 @@ function AdminPage() {
                             </button>
                           )}
                           <button
+                            onClick={() => resetPassword(u.id, u.email)}
+                            title="Reset password"
+                            className="rounded-lg border border-[#E5E3DD] p-1.5 text-[#173B3D] hover:bg-[#f8efe1]"
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </button>
+                          <button
                             onClick={() => removeUser(u.id)}
                             disabled={u.isAdmin}
                             title="Delete user"
@@ -311,7 +389,17 @@ function AdminPage() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-[#E5E3DD] bg-white">
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={exportCsv}
+                disabled={records.length === 0}
+                className="flex items-center gap-2 rounded-xl bg-[#173B3D] px-4 py-2 text-sm font-bold text-white hover:bg-[#0f2a2b] disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" /> Export CSV
+              </button>
+            </div>
+            <div className="overflow-x-auto rounded-2xl border border-[#E5E3DD] bg-white">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#E5E3DD] text-left text-[10px] uppercase tracking-wider text-[#6B7575]">
@@ -362,6 +450,7 @@ function AdminPage() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>

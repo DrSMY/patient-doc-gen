@@ -14,6 +14,7 @@ import { useEffect } from "react";
 import { generatePDF, generatePNG } from "@/lib/pdfService";
 import { useMyStatus } from "@/hooks/useMyStatus";
 import { supabase } from "@/integrations/supabase/client";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 
 function AccountControl({ isAdmin }: { isAdmin?: boolean }) {
   const { user, loading } = useMyStatus();
@@ -41,6 +42,7 @@ function AccountControl({ isAdmin }: { isAdmin?: boolean }) {
       <span className="hidden max-w-[160px] truncate text-xs font-semibold text-[#6B7575] sm:inline">
         {user.email}
       </span>
+      <ChangePasswordDialog />
       <button
         onClick={() => supabase.auth.signOut()}
         title="Sign out"

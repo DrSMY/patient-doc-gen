@@ -298,6 +298,31 @@ export const adminDeleteUser = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Admin: set a new password for a given user. */
+export const adminSetUserPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        password: z.string().min(6).max(72),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import(
+      "@/integrations/supabase/client.server"
+    );
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(
+      data.userId,
+      { password: data.password },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
 /** Admin: list all downloaded prescriptions across users. */
 export const adminListPrescriptions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

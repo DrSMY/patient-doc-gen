@@ -4,6 +4,7 @@ import { PrescriptionForm } from "@/components/prescription/PrescriptionForm";
 import { PrescriptionPreview } from "@/components/prescription/PrescriptionPreview";
 import { EditorLayout, useLocalStorageList } from "@/components/EditorLayout";
 import { useCloudAssetSync } from "@/hooks/useCloudSync";
+import { saveDownloadedPrescription } from "@/lib/cloud.functions";
 import type { PrescriptionData } from "@/lib/types";
 import { getFormattedDate } from "@/lib/dateUtils";
 

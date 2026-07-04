@@ -4,6 +4,7 @@ import { PrescriptionForm } from "@/components/prescription/PrescriptionForm";
 import { PrescriptionPreview } from "@/components/prescription/PrescriptionPreview";
 import { EditorLayout, useLocalStorageList } from "@/components/EditorLayout";
 import { useCloudAssetSync } from "@/hooks/useCloudSync";
+import { saveDownloadedPrescription } from "@/lib/cloud.functions";
 import type { PrescriptionData } from "@/lib/types";
 import { getFormattedDate } from "@/lib/dateUtils";
 
@@ -67,12 +68,14 @@ function PrescriptionPage() {
     const logo = localStorage.getItem("docgenie_active_logo") || undefined;
     const signature = localStorage.getItem("docgenie_active_signature") || undefined;
     const stamp = localStorage.getItem("docgenie_active_stamp") || undefined;
-    if (logo || signature || stamp) {
+    const erxSerial = localStorage.getItem("docgenie_erx_serial") || undefined;
+    if (logo || signature || stamp || erxSerial) {
       setData((d) => ({
         ...d,
         logo: logo ?? d.logo,
         signature: signature ?? d.signature,
         stamp: stamp ?? d.stamp,
+        erxIdSerial: erxSerial ?? d.erxIdSerial,
       }));
     }
   }, []);
@@ -88,6 +91,12 @@ function PrescriptionPage() {
     else localStorage.removeItem("docgenie_active_stamp");
   }, [data.logo, data.signature, data.stamp]);
 
+  // Persist the eRx serial so it keeps incrementing across sessions.
+  useEffect(() => {
+    if (!restored.current) return;
+    if (data.erxIdSerial) localStorage.setItem("docgenie_erx_serial", data.erxIdSerial);
+  }, [data.erxIdSerial]);
+
   // Sync active logo/signature/stamp with the signed-in user's account.
   const applyAssets = useCallback(
     (next: { logo?: string; signature?: string; stamp?: string }) =>
@@ -98,14 +107,45 @@ function PrescriptionPage() {
     { logo: data.logo, signature: data.signature, stamp: data.stamp },
     applyAssets,
   );
+  const erxLabel = `Erx ${data.erxIdSerial}-${data.erxIdMonth}-${data.erxIdYear}`;
+  const fileName = `${erxLabel}- ${data.patientName || "patient"}- prescription`;
 
-
+  // On download: save the record to the database, then advance the eRx serial.
+  const handleDownload = useCallback(async () => {
+    try {
+      await saveDownloadedPrescription({
+        data: {
+          erx: erxLabel,
+          patient_name: data.patientName || "",
+          patient_age: data.patientDob || "",
+          patient_gender: data.patientGender || "",
+          date_created: data.date || "",
+          medications: data.medications.map((m) => ({
+            name: m.name || "",
+            dosage: m.dosage || "",
+            instructions: m.instructions || "",
+            quantity: m.quantity || "",
+          })),
+        },
+      });
+    } catch {
+      /* saving is best-effort; do not block the download */
+    }
+    // Advance the eRx serial for the next prescription (00001 -> 00002).
+    setData((d) => {
+      const next = (parseInt(d.erxIdSerial || "0", 10) + 1)
+        .toString()
+        .padStart(5, "0");
+      return { ...d, erxIdSerial: next };
+    });
+  }, [data, erxLabel]);
 
   return (
     <EditorLayout
       title="Prescription"
       previewId="prescription-preview"
-      fileName={`prescription-${data.patientName || "document"}`}
+      fileName={fileName}
+      onDownload={handleDownload}
       form={
         <PrescriptionForm
           data={data}

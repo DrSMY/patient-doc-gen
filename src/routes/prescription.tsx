@@ -68,12 +68,14 @@ function PrescriptionPage() {
     const logo = localStorage.getItem("docgenie_active_logo") || undefined;
     const signature = localStorage.getItem("docgenie_active_signature") || undefined;
     const stamp = localStorage.getItem("docgenie_active_stamp") || undefined;
-    if (logo || signature || stamp) {
+    const erxSerial = localStorage.getItem("docgenie_erx_serial") || undefined;
+    if (logo || signature || stamp || erxSerial) {
       setData((d) => ({
         ...d,
         logo: logo ?? d.logo,
         signature: signature ?? d.signature,
         stamp: stamp ?? d.stamp,
+        erxIdSerial: erxSerial ?? d.erxIdSerial,
       }));
     }
   }, []);
@@ -88,6 +90,12 @@ function PrescriptionPage() {
     if (data.stamp) localStorage.setItem("docgenie_active_stamp", data.stamp);
     else localStorage.removeItem("docgenie_active_stamp");
   }, [data.logo, data.signature, data.stamp]);
+
+  // Persist the eRx serial so it keeps incrementing across sessions.
+  useEffect(() => {
+    if (!restored.current) return;
+    if (data.erxIdSerial) localStorage.setItem("docgenie_erx_serial", data.erxIdSerial);
+  }, [data.erxIdSerial]);
 
   // Sync active logo/signature/stamp with the signed-in user's account.
   const applyAssets = useCallback(

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PrescriptionRouteImport } from './routes/prescription'
 import { Route as MedicalReportRouteImport } from './routes/medical-report'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 
 const PrescriptionRoute = PrescriptionRouteImport.update({
@@ -23,6 +24,11 @@ const MedicalReportRoute = MedicalReportRouteImport.update({
   path: '/medical-report',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -31,30 +37,34 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/medical-report': typeof MedicalReportRoute
   '/prescription': typeof PrescriptionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/medical-report': typeof MedicalReportRoute
   '/prescription': typeof PrescriptionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/medical-report': typeof MedicalReportRoute
   '/prescription': typeof PrescriptionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/medical-report' | '/prescription'
+  fullPaths: '/' | '/auth' | '/medical-report' | '/prescription'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/medical-report' | '/prescription'
-  id: '__root__' | '/' | '/medical-report' | '/prescription'
+  to: '/' | '/auth' | '/medical-report' | '/prescription'
+  id: '__root__' | '/' | '/auth' | '/medical-report' | '/prescription'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   MedicalReportRoute: typeof MedicalReportRoute
   PrescriptionRoute: typeof PrescriptionRoute
 }
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MedicalReportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   MedicalReportRoute: MedicalReportRoute,
   PrescriptionRoute: PrescriptionRoute,
 }

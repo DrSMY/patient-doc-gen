@@ -510,26 +510,60 @@ function AdminPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#E5E3DD] bg-white p-4">
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7575]">
-                  Shareable client link
-                </p>
-                <p className="truncate text-sm font-medium text-[#173B3D]">
-                  {typeof window !== "undefined" ? window.location.origin : ""}/request
-                </p>
+            <div className="flex flex-col gap-3 rounded-2xl border border-[#E5E3DD] bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7575]">
+                    Shareable client link
+                  </p>
+                  <p className="truncate text-sm font-medium text-[#173B3D]">
+                    {typeof window !== "undefined" ? window.location.origin : ""}/request
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard
+                      ?.writeText(`${window.location.origin}/request`)
+                      .then(() => alert("Link copied."))
+                      .catch(() => {});
+                  }}
+                  className="flex items-center gap-2 rounded-xl bg-[#173B3D] px-4 py-2 text-sm font-bold text-white hover:bg-[#0f2a2b]"
+                >
+                  <ExternalLink className="h-4 w-4" /> Copy link
+                </button>
               </div>
-              <button
-                onClick={() => {
-                  navigator.clipboard
-                    ?.writeText(`${window.location.origin}/request`)
-                    .then(() => alert("Link copied."))
-                    .catch(() => {});
-                }}
-                className="flex items-center gap-2 rounded-xl bg-[#173B3D] px-4 py-2 text-sm font-bold text-white hover:bg-[#0f2a2b]"
-              >
-                <ExternalLink className="h-4 w-4" /> Copy link
-              </button>
+              <div className="flex flex-wrap items-end gap-3 border-t border-[#F0EEE8] pt-3">
+                <div className="flex-1 min-w-[180px]">
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-[#6B7575]">
+                    WhatsApp number
+                  </label>
+                  <input
+                    type="tel"
+                    value={waNumber}
+                    onChange={(e) => setWaNumber(e.target.value)}
+                    placeholder="+971561729928"
+                    className="w-full rounded-xl border border-[#E5E3DD] px-3 py-2 text-sm outline-none focus:border-[#173B3D]"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    const num = waNumber.replace(/[^\d]/g, "");
+                    if (!num) {
+                      alert("Enter a WhatsApp number first.");
+                      return;
+                    }
+                    const link = `${window.location.origin}/request`;
+                    const msg = `Hello! Kindly fill in your details to receive your prescription in the correct format: ${link}`;
+                    window.open(
+                      `https://wa.me/${num}?text=${encodeURIComponent(msg)}`,
+                      "_blank",
+                    );
+                  }}
+                  className="flex items-center gap-2 rounded-xl bg-[#25D366] px-4 py-2 text-sm font-bold text-white hover:bg-[#1da851]"
+                >
+                  <Send className="h-4 w-4" /> Share on WhatsApp
+                </button>
+              </div>
             </div>
           <div className="overflow-x-auto rounded-2xl border border-[#E5E3DD] bg-white">
             <table className="w-full text-sm">

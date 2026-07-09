@@ -13,6 +13,7 @@ import {
   Download,
   KeyRound,
   Inbox,
+  Send,
   ExternalLink,
 } from "lucide-react";
 import { useMyStatus } from "@/hooks/useMyStatus";

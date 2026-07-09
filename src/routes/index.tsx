@@ -91,6 +91,35 @@ function Home() {
               Create report →
             </span>
           </Link>
+
+          <div className="group flex flex-col rounded-3xl border border-[#E5E3DD] bg-white p-8 shadow-sm">
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f8efe1] text-[#173B3D]">
+              <Send className="h-7 w-7" />
+            </div>
+            <h2 className="text-xl font-bold tracking-tight">
+              Send WhatsApp link
+            </h2>
+            <p className="mt-2 text-sm text-[#6B7575]">
+              Share the client request link on WhatsApp so patients can submit
+              their details for a prescription.
+            </p>
+            <div className="mt-5 space-y-3">
+              <input
+                type="tel"
+                value={waNumber}
+                onChange={(e) => setWaNumber(e.target.value)}
+                placeholder="+9715XXXXXXXX"
+                className="w-full rounded-xl border border-[#E5E3DD] bg-[#fcfbf8] px-4 py-2.5 text-sm text-[#173B3D] outline-none focus:border-[#173B3D]"
+              />
+              <button
+                type="button"
+                onClick={shareWhatsApp}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#173B3D] px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[#0f2b2d]"
+              >
+                <Send className="h-4 w-4" /> Share on WhatsApp
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

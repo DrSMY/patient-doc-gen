@@ -91,6 +91,7 @@ function AdminPage() {
   const [newPassword, setNewPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [waNumber, setWaNumber] = useState("+971561729928");
 
 
   useEffect(() => {

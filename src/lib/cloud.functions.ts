@@ -351,3 +351,79 @@ export const adminListPrescriptions = createServerFn({ method: "GET" })
       })),
     };
   });
+
+// ---------------------------------------------------------------------------
+// Public client prescription requests
+// ---------------------------------------------------------------------------
+
+/** Team: list prescription requests (approved signed-in users). */
+export const listRequests = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context;
+    const { data, error } = await supabase
+      .from("prescription_requests")
+      .select(
+        "id, patient_name, patient_age, patient_gender, product, dose, quantity, instructions, status, created_at",
+      )
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    if (error) throw new Error(error.message);
+    return { requests: data ?? [] };
+  });
+
+/** Team: fetch a single request by id (used for one-click prefill). */
+export const getRequest = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: row, error } = await supabase
+      .from("prescription_requests")
+      .select(
+        "id, patient_name, patient_age, patient_gender, product, dose, quantity, instructions, status, created_at",
+      )
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { request: row };
+  });
+
+/** Team: update a request's status (pending/handled). */
+export const setRequestStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        status: z.enum(["pending", "handled"]),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { error } = await supabase
+      .from("prescription_requests")
+      .update({ status: data.status })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Admin: delete a request. */
+export const adminDeleteRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import(
+      "@/integrations/supabase/client.server"
+    );
+    const { error } = await supabaseAdmin
+      .from("prescription_requests")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+

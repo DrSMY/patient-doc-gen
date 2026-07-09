@@ -68,6 +68,48 @@ export type Database = {
         }
         Relationships: []
       }
+      prescription_requests: {
+        Row: {
+          created_at: string
+          dose: string
+          id: string
+          instructions: string
+          patient_age: string
+          patient_gender: string
+          patient_name: string
+          product: string
+          quantity: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dose?: string
+          id?: string
+          instructions?: string
+          patient_age?: string
+          patient_gender?: string
+          patient_name?: string
+          product?: string
+          quantity?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dose?: string
+          id?: string
+          instructions?: string
+          patient_age?: string
+          patient_gender?: string
+          patient_name?: string
+          product?: string
+          quantity?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       prescriptions: {
         Row: {
           created_at: string

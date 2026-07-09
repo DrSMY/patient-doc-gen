@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RequestRouteImport } from './routes/request'
 import { Route as PrescriptionRouteImport } from './routes/prescription'
 import { Route as MedicalReportRouteImport } from './routes/medical-report'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const RequestRoute = RequestRouteImport.update({
+  id: '/request',
+  path: '/request',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrescriptionRoute = PrescriptionRouteImport.update({
   id: '/prescription',
   path: '/prescription',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/medical-report': typeof MedicalReportRoute
   '/prescription': typeof PrescriptionRoute
+  '/request': typeof RequestRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/medical-report': typeof MedicalReportRoute
   '/prescription': typeof PrescriptionRoute
+  '/request': typeof RequestRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,12 +70,25 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/medical-report': typeof MedicalReportRoute
   '/prescription': typeof PrescriptionRoute
+  '/request': typeof RequestRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/auth' | '/medical-report' | '/prescription'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/medical-report'
+    | '/prescription'
+    | '/request'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/auth' | '/medical-report' | '/prescription'
+  to:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/medical-report'
+    | '/prescription'
+    | '/request'
   id:
     | '__root__'
     | '/'
@@ -75,6 +96,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/medical-report'
     | '/prescription'
+    | '/request'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -83,10 +105,18 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   MedicalReportRoute: typeof MedicalReportRoute
   PrescriptionRoute: typeof PrescriptionRoute
+  RequestRoute: typeof RequestRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/request': {
+      id: '/request'
+      path: '/request'
+      fullPath: '/request'
+      preLoaderRoute: typeof RequestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/prescription': {
       id: '/prescription'
       path: '/prescription'
@@ -131,17 +161,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   MedicalReportRoute: MedicalReportRoute,
   PrescriptionRoute: PrescriptionRoute,
+  RequestRoute: RequestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

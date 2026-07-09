@@ -57,7 +57,7 @@ function Home() {
           PDF / PNG export.
         </p>
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-2">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <Link
             to="/prescription"
             className="group rounded-3xl border border-[#E5E3DD] bg-white p-8 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl"

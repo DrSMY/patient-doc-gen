@@ -12,6 +12,8 @@ import {
   FileText,
   Download,
   KeyRound,
+  Inbox,
+  ExternalLink,
 } from "lucide-react";
 import { useMyStatus } from "@/hooks/useMyStatus";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +25,11 @@ import {
   adminDeleteUser,
   adminListPrescriptions,
   adminSetUserPassword,
+  listRequests,
+  setRequestStatus,
+  adminDeleteRequest,
 } from "@/lib/cloud.functions";
+
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -60,17 +66,32 @@ interface AdminRx {
   doctor_email: string | null;
 }
 
+interface AdminRequest {
+  id: string;
+  patient_name: string;
+  patient_age: string;
+  patient_gender: string;
+  product: string;
+  dose: string;
+  quantity: string;
+  instructions: string;
+  status: string;
+  created_at: string;
+}
+
 function AdminPage() {
   const navigate = useNavigate();
   const { user, status, loading } = useMyStatus();
-  const [tab, setTab] = useState<"users" | "records">("users");
+  const [tab, setTab] = useState<"users" | "records" | "requests">("users");
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [records, setRecords] = useState<AdminRx[]>([]);
+  const [requests, setRequests] = useState<AdminRequest[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (loading) return;
@@ -86,17 +107,20 @@ function AdminPage() {
   const refresh = useCallback(async () => {
     setDataLoading(true);
     try {
-      const [u, r] = await Promise.all([
+      const [u, r, q] = await Promise.all([
         adminListUsers(),
         adminListPrescriptions(),
+        listRequests(),
       ]);
       setUsers((u.users as AdminUser[]) ?? []);
       setRecords((r.prescriptions as AdminRx[]) ?? []);
+      setRequests((q.requests as AdminRequest[]) ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load data.");
     } finally {
       setDataLoading(false);
     }
+
   }, []);
 
   useEffect(() => {
@@ -146,6 +170,21 @@ function AdminPage() {
       setError(err instanceof Error ? err.message : "Password update failed.");
     }
   };
+
+  const toggleRequest = async (id: string, status: string) => {
+    const next = status === "handled" ? "pending" : "handled";
+    await setRequestStatus({ data: { id, status: next } }).catch(() => {});
+    refresh();
+  };
+  const removeRequest = async (id: string) => {
+    if (!confirm("Delete this request permanently?")) return;
+    await adminDeleteRequest({ data: { id } }).catch(() => {});
+    refresh();
+  };
+  const openInCreator = (id: string) => {
+    navigate({ to: "/prescription", search: { request: id } });
+  };
+
 
   const exportCsv = () => {
     const esc = (v: unknown) => {
@@ -253,7 +292,23 @@ function AdminPage() {
           >
             <FileText className="h-4 w-4" /> Prescription records
           </button>
+          <button
+            onClick={() => setTab("requests")}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold ${
+              tab === "requests"
+                ? "bg-[#173B3D] text-white"
+                : "border border-[#E5E3DD] bg-white text-[#173B3D]"
+            }`}
+          >
+            <Inbox className="h-4 w-4" /> Requests
+            {requests.some((r) => r.status !== "handled") && (
+              <span className="ml-1 rounded-full bg-amber-400 px-1.5 text-[10px] font-black text-[#173B3D]">
+                {requests.filter((r) => r.status !== "handled").length}
+              </span>
+            )}
+          </button>
         </div>
+
 
         {error && (
           <p className="mb-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">
@@ -388,7 +443,7 @@ function AdminPage() {
               </table>
             </div>
           </div>
-        ) : (
+        ) : tab === "records" ? (
           <div className="space-y-4">
             <div className="flex justify-end">
               <button
@@ -452,7 +507,107 @@ function AdminPage() {
             </table>
             </div>
           </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#E5E3DD] bg-white p-4">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7575]">
+                  Shareable client link
+                </p>
+                <p className="truncate text-sm font-medium text-[#173B3D]">
+                  {typeof window !== "undefined" ? window.location.origin : ""}/request
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard
+                    ?.writeText(`${window.location.origin}/request`)
+                    .then(() => alert("Link copied."))
+                    .catch(() => {});
+                }}
+                className="flex items-center gap-2 rounded-xl bg-[#173B3D] px-4 py-2 text-sm font-bold text-white hover:bg-[#0f2a2b]"
+              >
+                <ExternalLink className="h-4 w-4" /> Copy link
+              </button>
+            </div>
+          <div className="overflow-x-auto rounded-2xl border border-[#E5E3DD] bg-white">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#E5E3DD] text-left text-[10px] uppercase tracking-wider text-[#6B7575]">
+                  <th className="px-4 py-3">Patient</th>
+                  <th className="px-4 py-3">Age</th>
+                  <th className="px-4 py-3">Gender</th>
+                  <th className="px-4 py-3">Medication</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Received</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requests.map((r) => (
+                  <tr key={r.id} className="border-b border-[#F0EEE8] align-top">
+                    <td className="px-4 py-3 font-medium">{r.patient_name || "—"}</td>
+                    <td className="px-4 py-3">{r.patient_age || "—"}</td>
+                    <td className="px-4 py-3">{r.patient_gender || "—"}</td>
+                    <td className="px-4 py-3 text-xs">
+                      <span className="font-bold">{r.product}</span>
+                      {r.dose ? ` · ${r.dose}` : ""}
+                      {r.quantity ? ` · ${r.quantity}` : ""}
+                    </td>
+                    <td className="px-4 py-3">
+                      {r.status === "handled" ? (
+                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">
+                          Handled
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
+                          Pending
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-[#6B7575]">
+                      {new Date(r.created_at).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => openInCreator(r.id)}
+                          title="Open in creator"
+                          className="rounded-lg border border-[#E5E3DD] p-1.5 text-[#173B3D] hover:bg-[#f8efe1]"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => toggleRequest(r.id, r.status)}
+                          title={r.status === "handled" ? "Mark pending" : "Mark handled"}
+                          className="rounded-lg border border-[#E5E3DD] p-1.5 text-green-700 hover:bg-green-50"
+                        >
+                          <Check className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => removeRequest(r.id)}
+                          title="Delete request"
+                          className="rounded-lg border border-[#E5E3DD] p-1.5 text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {requests.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-[#6B7575]">
+                      No client requests yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          </div>
         )}
+
       </div>
     </div>
   );

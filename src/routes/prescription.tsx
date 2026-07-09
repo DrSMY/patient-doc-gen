@@ -1,14 +1,23 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PrescriptionForm } from "@/components/prescription/PrescriptionForm";
 import { PrescriptionPreview } from "@/components/prescription/PrescriptionPreview";
 import { EditorLayout, useLocalStorageList } from "@/components/EditorLayout";
 import { useCloudAssetSync } from "@/hooks/useCloudSync";
-import { saveDownloadedPrescription } from "@/lib/cloud.functions";
+import {
+  saveDownloadedPrescription,
+  listRequests,
+  getRequest,
+  setRequestStatus,
+} from "@/lib/cloud.functions";
 import type { PrescriptionData } from "@/lib/types";
 import { getFormattedDate } from "@/lib/dateUtils";
+import { Inbox, ChevronDown, ChevronUp } from "lucide-react";
 
 export const Route = createFileRoute("/prescription")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    request: typeof search.request === "string" ? search.request : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Prescription Creator — DocuGenie" },
@@ -27,6 +36,20 @@ export const Route = createFileRoute("/prescription")({
   }),
   component: PrescriptionPage,
 });
+
+interface RequestRow {
+  id: string;
+  patient_name: string;
+  patient_age: string;
+  patient_gender: string;
+  product: string;
+  dose: string;
+  quantity: string;
+  instructions: string;
+  status: string;
+  created_at: string;
+}
+
 
 const now = new Date();
 const INITIAL_PRESCRIPTION: PrescriptionData = {
@@ -55,10 +78,61 @@ const INITIAL_PRESCRIPTION: PrescriptionData = {
 };
 
 function PrescriptionPage() {
+  const navigate = useNavigate();
+  const { request: requestParam } = Route.useSearch();
   const [data, setData] = useState<PrescriptionData>(INITIAL_PRESCRIPTION);
   const [savedSignatures, setSavedSignatures] = useLocalStorageList("docgenie_signatures");
   const [savedStamps, setSavedStamps] = useLocalStorageList("docgenie_stamps");
   const [savedLogos, setSavedLogos] = useLocalStorageList("docgenie_logos");
+
+  const [requests, setRequests] = useState<RequestRow[]>([]);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const currentRequestId = useRef<string | null>(null);
+
+  const loadRequests = useCallback(async () => {
+    try {
+      const res = await listRequests();
+      setRequests((res.requests as RequestRow[]) ?? []);
+    } catch {
+      /* not signed in or no access; ignore */
+    }
+  }, []);
+  useEffect(() => {
+    loadRequests();
+  }, [loadRequests]);
+
+  const applyRequest = useCallback((r: RequestRow) => {
+    currentRequestId.current = r.id;
+    setData((d) => ({
+      ...d,
+      patientName: r.patient_name || d.patientName,
+      patientDob: r.patient_age || d.patientDob,
+      patientGender: r.patient_gender || d.patientGender,
+      medications: [
+        {
+          id: Date.now().toString(),
+          name: r.product,
+          dosage: r.dose,
+          quantity: r.quantity,
+          instructions: r.instructions,
+        },
+      ],
+    }));
+  }, []);
+
+  // One-click prefill from the Admin "Open in creator" button (?request=<id>).
+  const prefilledParam = useRef(false);
+  useEffect(() => {
+    if (prefilledParam.current || !requestParam) return;
+    prefilledParam.current = true;
+    getRequest({ data: { id: requestParam } })
+      .then((res) => {
+        if (res.request) applyRequest(res.request as RequestRow);
+      })
+      .catch(() => {})
+      .finally(() => navigate({ to: "/prescription", search: {}, replace: true }));
+  }, [requestParam, applyRequest, navigate]);
+
 
   // Restore the last-used active logo/signature/stamp on mount.
   const restored = useRef(false);
@@ -131,6 +205,14 @@ function PrescriptionPage() {
     } catch {
       /* saving is best-effort; do not block the download */
     }
+    // If this prescription came from a client request, mark it handled.
+    if (currentRequestId.current) {
+      const id = currentRequestId.current;
+      currentRequestId.current = null;
+      setRequestStatus({ data: { id, status: "handled" } })
+        .then(loadRequests)
+        .catch(() => {});
+    }
     // Advance the eRx serial for the next prescription (00001 -> 00002).
     setData((d) => {
       const next = (parseInt(d.erxIdSerial || "0", 10) + 1)
@@ -138,7 +220,66 @@ function PrescriptionPage() {
         .padStart(5, "0");
       return { ...d, erxIdSerial: next };
     });
-  }, [data, erxLabel]);
+  }, [data, erxLabel, loadRequests]);
+
+  const pending = requests.filter((r) => r.status !== "handled");
+  const requestsPanel = (
+    <div className="mb-4 rounded-2xl border border-[#E5E3DD] bg-white">
+      <button
+        type="button"
+        onClick={() => setPanelOpen((o) => !o)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left"
+      >
+        <span className="flex items-center gap-2 text-sm font-bold text-[#173B3D]">
+          <Inbox className="h-4 w-4" /> Incoming requests
+          {pending.length > 0 && (
+            <span className="rounded-full bg-amber-400 px-1.5 text-[10px] font-black text-[#173B3D]">
+              {pending.length}
+            </span>
+          )}
+        </span>
+        {panelOpen ? (
+          <ChevronUp className="h-4 w-4 text-[#6B7575]" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-[#6B7575]" />
+        )}
+      </button>
+      {panelOpen && (
+        <div className="max-h-64 overflow-y-auto border-t border-[#F0EEE8]">
+          {pending.length === 0 ? (
+            <p className="px-4 py-4 text-xs text-[#6B7575]">
+              No pending client requests.
+            </p>
+          ) : (
+            pending.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => applyRequest(r)}
+                className="flex w-full items-center justify-between gap-3 border-b border-[#F0EEE8] px-4 py-3 text-left hover:bg-[#f8efe1]"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold text-[#173B3D]">
+                    {r.patient_name || "Unnamed"}{" "}
+                    <span className="font-normal text-[#6B7575]">
+                      · {r.patient_age} · {r.patient_gender}
+                    </span>
+                  </span>
+                  <span className="block truncate text-xs text-[#6B7575]">
+                    {r.product} · {r.dose}
+                  </span>
+                </span>
+                <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-[#173B3D]">
+                  Load →
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+
 
   return (
     <EditorLayout
@@ -147,17 +288,21 @@ function PrescriptionPage() {
       fileName={fileName}
       onDownload={handleDownload}
       form={
-        <PrescriptionForm
-          data={data}
-          onChange={setData}
-          savedSignatures={savedSignatures}
-          setSavedSignatures={setSavedSignatures}
-          savedStamps={savedStamps}
-          setSavedStamps={setSavedStamps}
-          savedLogos={savedLogos}
-          setSavedLogos={setSavedLogos}
-        />
+        <>
+          {requestsPanel}
+          <PrescriptionForm
+            data={data}
+            onChange={setData}
+            savedSignatures={savedSignatures}
+            setSavedSignatures={setSavedSignatures}
+            savedStamps={savedStamps}
+            setSavedStamps={setSavedStamps}
+            savedLogos={savedLogos}
+            setSavedLogos={setSavedLogos}
+          />
+        </>
       }
+
       preview={<PrescriptionPreview data={data} id="prescription-preview" />}
     />
   );

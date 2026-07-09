@@ -28,6 +28,17 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+  const [waNumber, setWaNumber] = useState("+971561729928");
+
+  const shareWhatsApp = () => {
+    const digits = waNumber.replace(/[^\d]/g, "");
+    const message = `Kindly put your name, age, and gender as per your passport in order to receive your prescription in the right format. Once you provide this information the team will be able to send you your prescription copy.\n\n${REQUEST_LINK}`;
+    const url = digits
+      ? `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  };
+
   return (
     <div className="min-h-screen bg-[#fcfbf8] text-[#173B3D]">
       <div className="mx-auto max-w-5xl px-6 py-20">

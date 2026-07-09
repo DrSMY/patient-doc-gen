@@ -1,5 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Pill, ClipboardList, FileText } from "lucide-react";
+import { useState } from "react";
+import { Pill, ClipboardList, FileText, Send } from "lucide-react";
+
+const REQUEST_LINK = "https://patient-doc-gen.lovable.app/request";
 
 export const Route = createFileRoute("/")({
   head: () => ({

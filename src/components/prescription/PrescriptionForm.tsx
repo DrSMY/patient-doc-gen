@@ -485,11 +485,12 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
             <input
               type="text"
               value={data.patientDob}
-              onChange={(e) => handleChange('patientDob', e.target.value.replace(/\D/g, ''))}
-              placeholder="00"
+              onChange={(e) => handleChange('patientDob', e.target.value)}
+              placeholder="DD/MM/YYYY or age"
               className="w-full bg-white border-slate-200 rounded-xl px-4 py-3 lg:py-2 text-sm font-bold focus:ring-2 focus:ring-[#173B3D] outline-none border"
             />
           </div>
+
           
           <div className="space-y-1">
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider ml-1">Gender</p>

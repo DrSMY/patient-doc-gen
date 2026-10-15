@@ -9,31 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as RequestRouteImport } from './routes/request'
-import { Route as PrescriptionRouteImport } from './routes/prescription'
-import { Route as MedicalReportRouteImport } from './routes/medical-report'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as MedicalReportRouteImport } from './routes/medical-report'
+import { Route as PrescriptionRouteImport } from './routes/prescription'
+import { Route as RequestRouteImport } from './routes/request'
 
-const RequestRoute = RequestRouteImport.update({
-  id: '/request',
-  path: '/request',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrescriptionRoute = PrescriptionRouteImport.update({
-  id: '/prescription',
-  path: '/prescription',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MedicalReportRoute = MedicalReportRouteImport.update({
-  id: '/medical-report',
-  path: '/medical-report',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -41,9 +26,24 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MedicalReportRoute = MedicalReportRouteImport.update({
+  id: '/medical-report',
+  path: '/medical-report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrescriptionRoute = PrescriptionRouteImport.update({
+  id: '/prescription',
+  path: '/prescription',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestRoute = RequestRouteImport.update({
+  id: '/request',
+  path: '/request',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -75,20 +75,10 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/admin'
-    | '/auth'
-    | '/medical-report'
-    | '/prescription'
-    | '/request'
+    '/' | '/admin' | '/auth' | '/medical-report' | '/prescription' | '/request'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/admin'
-    | '/auth'
-    | '/medical-report'
-    | '/prescription'
-    | '/request'
+    '/' | '/admin' | '/auth' | '/medical-report' | '/prescription' | '/request'
   id:
     | '__root__'
     | '/'
@@ -110,32 +100,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/request': {
-      id: '/request'
-      path: '/request'
-      fullPath: '/request'
-      preLoaderRoute: typeof RequestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/prescription': {
-      id: '/prescription'
-      path: '/prescription'
-      fullPath: '/prescription'
-      preLoaderRoute: typeof PrescriptionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/medical-report': {
-      id: '/medical-report'
-      path: '/medical-report'
-      fullPath: '/medical-report'
-      preLoaderRoute: typeof MedicalReportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -145,11 +114,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/medical-report': {
+      id: '/medical-report'
+      path: '/medical-report'
+      fullPath: '/medical-report'
+      preLoaderRoute: typeof MedicalReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prescription': {
+      id: '/prescription'
+      path: '/prescription'
+      fullPath: '/prescription'
+      preLoaderRoute: typeof PrescriptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/request': {
+      id: '/request'
+      path: '/request'
+      fullPath: '/request'
+      preLoaderRoute: typeof RequestRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -166,3 +156,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

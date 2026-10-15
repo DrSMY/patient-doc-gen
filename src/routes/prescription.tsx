@@ -15,7 +15,7 @@ import { getFormattedDate } from "@/lib/dateUtils";
 import { Inbox, ChevronDown, ChevronUp } from "lucide-react";
 
 export const Route = createFileRoute("/prescription")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { request?: string } => ({
     request: typeof search.request === "string" ? search.request : undefined,
   }),
   head: () => ({
